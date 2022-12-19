@@ -1,0 +1,5 @@
+[
+    { "path": "/api/wallet/exists", "controller": "./controllers/wallet/exists.js" },
+    { "path": "/api/wallet/register", "controller": "./controllers/wallet/register.js" },
+    { "path": "/api/wallet/login", "controller": "./controllers/wallet/login.js" }
+]

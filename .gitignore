@@ -1,0 +1,8 @@
+/node_modules
+/.env.development
+/.env.production
+/certs/pf44-dev-cert.cer
+/certs/pf44-dev-key.key
+/dist
+/certs/localhost.cer
+/certs/localhost.key
