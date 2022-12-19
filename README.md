@@ -13,7 +13,7 @@ La complétion automatique des différentes informations permet une saisie plus 
 Copyleft (c)2022-2023 Christophe LEMOINE
 Licence MIT
 
-https://github.com/pantaflex44/Kotidien
+https://github.com/pantaflex44/KotidienWeb
 
 Date de création 11/11/2022
 
