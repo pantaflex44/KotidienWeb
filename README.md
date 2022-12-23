@@ -18,3 +18,13 @@ https://github.com/pantaflex44/KotidienWeb
 Date de création 11/11/2022
 
 Kotidien est sous licence libre et open-source. Cette licence vous permet de redistribuer, modifier et améliorer Kotidien à votre guise. Toute modification, redistribution ou amélioration devra citer l'auteur original dans le respect de la licence.
+
+## Captures d'écran
+
+![Accueil](./screenshots/screenshot-home.png "Accueil")
+
+![Nouveau portefeuille](./screenshots/screenshot-register.png "Nouveau portefeuille")
+
+![Elément financier](./screenshots/screenshot-wallet.png "Elément financier")
+
+![Catégories](./screenshots/screenshot-categories.png "Catégories")
