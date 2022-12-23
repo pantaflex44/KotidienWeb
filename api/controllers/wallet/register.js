@@ -1,7 +1,7 @@
 const { Router, response } = require("express");
 const multer = require("multer");
 const { walletExists, createWallet, purgeWallet } = require("../../../src/wrappers/wallet_lib");
-const {   decryptBodyData } = require("../../../tools");
+const { decryptBodyData } = require("../../../tools");
 
 const upload = multer();
 const router = Router();

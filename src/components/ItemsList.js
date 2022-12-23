@@ -70,6 +70,8 @@ const ItemElement = memo(
                 overlayColor: theme.colorScheme === "dark" ? theme.colors.dark[9] : theme.colors.gray[2],
                 overlayOpacity: 0.55,
                 overlayBlur: 3,
+                trapFocus: true,
+                zIndex: 10000,
                 onConfirm: () => {
                     if (onDelete) onDelete(item.id);
                 }
@@ -267,6 +269,8 @@ function ItemsList({ value = [], onChange = null, useColors = true, translate = 
             overlayColor: theme.colorScheme === "dark" ? theme.colors.dark[9] : theme.colors.gray[2],
             overlayOpacity: 0.55,
             overlayBlur: 3,
+            trapFocus: true,
+            zIndex: 10000,
             onConfirm: () => {
                 setItems([]);
             }

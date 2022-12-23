@@ -15,9 +15,9 @@ import {
     ActionIcon,
     Space,
     Divider,
-    Container
+    Tooltip,
 } from "@mantine/core";
-import { IconAlien, IconMoonStars, IconPlugConnectedX, IconSettings, IconSun } from "@tabler/icons";
+import { IconAlien, IconDeviceFloppy, IconMoonStars, IconPlugConnectedX, IconSettings, IconSun } from "@tabler/icons";
 
 import { AppContext } from "./AppProvider";
 
@@ -63,59 +63,74 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                     >
                                         {value.path === "/" && (
                                             <Group position={"left"} spacing={"md"}>
-                                                <ActionIcon
-                                                    variant={"filled"}
-                                                    color={value.colorScheme === "light" ? "yellow" : "blue"}
-                                                    onClick={() => value.toggleColorScheme()}
-                                                    title={
+                                                <Tooltip
+                                                    label={
                                                         value.colorScheme === "dark"
                                                             ? "Basculer sur le thème clair (Ctrl+J)"
                                                             : "Basculer sur le thème sombre (Ctrl+J)"
                                                     }
                                                 >
-                                                    {value.colorScheme === "light" ? (
-                                                        <IconSun size={18} stroke={2.5} />
-                                                    ) : (
-                                                        <IconMoonStars size={18} stroke={2.5} />
-                                                    )}
-                                                </ActionIcon>
-                                                {app.toolbarItems.map((item, idx) => (
                                                     <ActionIcon
-                                                        key={`toolbarItem_${idx}`}
                                                         variant={"filled"}
-                                                        color={item.color || app.theme.colors.gray[7]}
-                                                        onClick={item.callback}
-                                                        title={item.text}
+                                                        color={value.colorScheme === "light" ? "yellow" : "gray"}
+                                                        onClick={() => value.toggleColorScheme()}
                                                     >
-                                                        {cloneElement(item.icon || <IconAlien />, { size: 18 })}
+                                                        {value.colorScheme === "light" ? (
+                                                            <IconSun size={18} stroke={2.5} />
+                                                        ) : (
+                                                            <IconMoonStars size={18} stroke={2.5} />
+                                                        )}
                                                     </ActionIcon>
+                                                </Tooltip>
+                                                {app.toolbarItems.map((item, idx) => (
+                                                    <Tooltip label={item.text} key={`toolbarItem_${idx}`}>
+                                                        <ActionIcon
+                                                            variant={"filled"}
+                                                            color={item.color || app.theme.colors.gray[7]}
+                                                            onClick={item.callback}
+                                                        >
+                                                            {cloneElement(item.icon || <IconAlien />, { size: 18 })}
+                                                        </ActionIcon>
+                                                    </Tooltip>
                                                 ))}
                                             </Group>
                                         )}
                                         {app.wallet && (
                                             <Group position={"right"} spacing={"md"}>
                                                 {app.walletToolbarItems.map((item, idx) => (
-                                                    <ActionIcon
-                                                        key={`toolbarItem_wallet_${idx}`}
-                                                        variant={"outline"}
-                                                        color={item.color || app.theme.colors.gray[7]}
-                                                        onClick={item.callback}
-                                                        title={item.text}
-                                                    >
-                                                        {cloneElement(item.icon || <IconAlien />, {
-                                                            size: 18,
-                                                            stroke: 2.5
-                                                        })}
-                                                    </ActionIcon>
+                                                    <Tooltip label={item.text} key={`toolbarItem_wallet_${idx}`}>
+                                                        <ActionIcon
+                                                            variant={"subtle"}
+                                                            color={item.color || app.theme.colors.gray[7]}
+                                                            onClick={item.callback}
+                                                        >
+                                                            {cloneElement(item.icon || <IconAlien />, {
+                                                                size: 18,
+                                                                stroke: 2.5
+                                                            })}
+                                                        </ActionIcon>
+                                                    </Tooltip>
                                                 ))}
-                                                <ActionIcon
-                                                    variant={"filled"}
-                                                    color={"red"}
-                                                    onClick={() => app.disconnect(true)}
-                                                    title={"Me déconnecter"}
-                                                >
-                                                    <IconPlugConnectedX size={18} />
-                                                </ActionIcon>
+                                                {app.expectedSaving && (
+                                                    <Tooltip label={"Enregistrer"}>
+                                                        <ActionIcon
+                                                            variant={"filled"}
+                                                            color={"blue"}
+                                                            onClick={() => app.save()}
+                                                        >
+                                                            <IconDeviceFloppy size={16} />
+                                                        </ActionIcon>
+                                                    </Tooltip>
+                                                )}
+                                                <Tooltip label={"Me déconnecter"}>
+                                                    <ActionIcon
+                                                        variant={"filled"}
+                                                        color={"red"}
+                                                        onClick={() => app.disconnect(true)}
+                                                    >
+                                                        <IconPlugConnectedX size={18} />
+                                                    </ActionIcon>
+                                                </Tooltip>
                                             </Group>
                                         )}
                                     </Group>

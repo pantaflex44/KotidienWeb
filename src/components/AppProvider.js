@@ -1,11 +1,17 @@
 import packagejson from "../../package.json";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, createContext } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
-import { createContext } from "react";
+
 import { Text, useMantineTheme } from "@mantine/core";
 import { useIdle } from "@mantine/hooks";
 import { closeAllModals, openConfirmModal } from "@mantine/modals";
+import { showNotification } from "@mantine/notifications";
+
+import { IconThumbUp, IconX } from "@tabler/icons";
+
+import { login } from "../wrappers/wallet_api";
+import { decryptData } from "../../tools";
 
 export const AppContext = createContext();
 
@@ -33,18 +39,98 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
     const [opened, setOpened] = useState(false);
     const [navbar, setNavbar] = useState({ header: null, content: null });
     const [wallet, setWallet] = useState(null);
+    const [currentPassword, setCurrentPassword] = useState(null);
     const [walletToolbarItems, setWalletToolbarItems] = useState([]);
     const [toolbarItems, setToolbarItems] = useState([]);
+    const [expectedSaving, setExpectedSaving] = useState(false);
 
     let logoutTimout = null;
+
+    const save = () => {
+        if (!expectedSaving || !currentPassword) return;
+        console.error("Remember to implement saving!");
+
+        // enregistrer le fichier metas (wallet) et crypter avec le mot de passe (currentPassword)
+
+        setExpectedSaving(false);
+    };
+
+    const connect = (email, password, saveIdents) =>
+        new Promise((resolve, reject) => {
+            login({ email, password }).then((response) => {
+                const { metas, errorCode, errorMessage } = response;
+
+                if (metas === null || errorCode !== 0) {
+                    showNotification({
+                        id: "login-error-notification",
+                        disallowClose: true,
+                        autoClose: 5000,
+                        title: "Connexion impossible à votre portefeuille!",
+                        message: errorMessage,
+                        color: "red",
+                        icon: <IconX size={18} />,
+                        loading: false
+                    });
+
+                    reject({ errorCode, errorMessage });
+                } else {
+                    if (saveIdents) {
+                        localStorage.setItem("credentials_email", email);
+                        localStorage.setItem("credentials_password", password);
+                    } else {
+                        localStorage.removeItem("credentials_email");
+                        localStorage.removeItem("credentials_password");
+                    }
+
+                    const newWallet = decryptData(metas);
+
+                    setExpectedSaving(false);
+                    setWallet(newWallet);
+                    setCurrentPassword(password);
+
+                    resolve(newWallet);
+                }
+            });
+        });
 
     const disconnect = (prevent = false) => {
         if (logoutTimout) clearTimeout(logoutTimout);
 
         const apply = () => {
+            closeAllModals();
             setWallet(null);
+            setCurrentPassword(null);
             closeAllModals();
             navigate("/");
+        };
+
+        const saveAll = () => {
+            if (expectedSaving) {
+                openConfirmModal({
+                    title: "Votre portefeuille a été modifié",
+                    children: (
+                        <Text size="sm" mb="lg" data-autofocus>
+                            Souhaitez-vous enregistrer votre portefeuille?
+                        </Text>
+                    ),
+                    withCloseButton: false,
+                    closeOnEscape: false,
+                    closeOnClickOutside: false,
+                    centered: true,
+                    overlayColor: theme.colorScheme === "dark" ? theme.colors.dark[9] : theme.colors.gray[2],
+                    overlayOpacity: 0.55,
+                    overlayBlur: 3,
+                    onConfirm: () => {
+                        save();
+                        apply();
+                    },
+                    onCancel: () => {
+                        apply();
+                    }
+                });
+            } else {
+                apply();
+            }
         };
 
         if (prevent) {
@@ -58,15 +144,77 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                 withCloseButton: false,
                 closeOnEscape: false,
                 closeOnClickOutside: false,
+                closeOnConfirm: false,
                 centered: true,
                 overlayColor: theme.colorScheme === "dark" ? theme.colors.dark[9] : theme.colors.gray[2],
                 overlayOpacity: 0.55,
                 overlayBlur: 3,
-                onConfirm: () => apply()
+                onConfirm: () => {
+                    saveAll();
+                }
             });
         } else {
-            apply();
+            saveAll();
         }
+    };
+
+    const setCategories = (newCategories) => {
+        if (wallet) {
+            const newWallet = { ...wallet, categories: newCategories };
+            setWallet(newWallet);
+            setExpectedSaving(true);
+        }
+    };
+
+    const setPaytypes = (newPaytypes) => {
+        if (wallet) {
+            const newWallet = { ...wallet, paytypes: newPaytypes };
+            setWallet(newWallet);
+            setExpectedSaving(true);
+        }
+    };
+
+    const setThirdparties = (newThirdparties) => {
+        if (wallet) {
+            const newWallet = { ...wallet, thirdparties: newThirdparties };
+            setWallet(newWallet);
+            setExpectedSaving(true);
+        }
+    };
+
+    const setProperties = (newProperties = { password: "", oldPassword: "", name: "", note: "", walletItems: [] }) => {
+        if (newProperties.oldPassword.trim() !== "" && newProperties.oldPassword !== currentPassword) {
+            showNotification({
+                id: "password-error-notification",
+                disallowClose: true,
+                autoClose: 5000,
+                title: "Modification du mot de passe",
+                message: "Mot de passe actuel incorrect!",
+                color: "red",
+                icon: <IconX size={18} />,
+                loading: false
+            });
+        } else if (newProperties.oldPassword === currentPassword && newProperties.password.trim() !== "") {
+            setCurrentPassword(newProperties.password);
+            showNotification({
+                id: "password-notification",
+                disallowClose: true,
+                autoClose: 5000,
+                title: "Modification du mot de passe",
+                message: "Mot de passe modifié avec succès.",
+                color: "green",
+                icon: <IconThumbUp size={18} />,
+                loading: false
+            });
+        }
+
+        setWallet((old) => ({
+            ...old,
+            name: newProperties.name,
+            note: newProperties.note,
+            walletItems: newProperties.walletItems
+        }));
+        setExpectedSaving(true);
     };
 
     useEffect(() => {
@@ -119,14 +267,20 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                 navbar,
                 navbarOpened: opened,
                 wallet,
+                expectedSaving,
+                save,
+                setWallet,
+                setCategories,
+                setPaytypes,
+                setThirdparties,
+                setProperties,
+                disconnect,
+                connect,
                 openNavabar: () => setOpened(true),
                 closeNavbar: () => setOpened(false),
                 toggleNavbar: () => setOpened((old) => !old),
                 setNavbarState: (state) => setOpened(state),
                 setNavbarContent: ({ header = null, content = null }) => setNavbar({ header, content }),
-                setWallet,
-                disconnect,
-                connect: (newWallet) => setWallet(newWallet),
                 addWalletToolbarItem: (text, callback, icon = null, color = null) => {
                     setWalletToolbarItems((current) => [...current, { text, callback, icon, color }]);
                 },

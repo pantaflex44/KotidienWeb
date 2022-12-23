@@ -40,38 +40,12 @@ function LoginForm() {
     const submitLoginForm = (values) => {
         setLoading(true);
 
-        login({ email: values.email, password: values.password })
-            .then((response) => {
-                const { metas, errorCode, errorMessage } = response;
-
-                if (metas === null || errorCode !== 0) {
-                    if (errorCode === 404 || errorCode === 401) {
-                        loginForm.setFieldError("email", errorMessage);
-                    }
-
-                    showNotification({
-                        id: "login-error-notification",
-                        disallowClose: true,
-                        autoClose: 5000,
-                        title: "Connexion impossible à votre portefeuille!",
-                        message: errorMessage,
-                        color: "red",
-                        icon: <IconX size={18} />,
-                        loading: false
-                    });
-
-                    return;
+        app.connect(values.email, values.password, values.saveIdents)
+            .then((newWallet) => {})
+            .catch(({ errorCode, errorMessage }) => {
+                if (errorCode === 404 || errorCode === 401) {
+                    loginForm.setFieldError("email", errorMessage);
                 }
-
-                if (values.saveIdents) {
-                    localStorage.setItem("credentials_email", values.email);
-                    localStorage.setItem("credentials_password", values.password);
-                } else {
-                    localStorage.removeItem("credentials_email");
-                    localStorage.removeItem("credentials_password");
-                }
-
-                app.connect(decryptData(metas));
             })
             .finally(() => {
                 setLoading(false);

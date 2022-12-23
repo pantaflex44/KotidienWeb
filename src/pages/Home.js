@@ -41,7 +41,11 @@ const Home = () => {
     }, [app]);
 
     return (
-        <Metas title={app.wallet?.name || "Bienvenue"}>
+        <Metas
+            title={
+                (app.expectedSaving ? "[ " : "") + (app.wallet?.name || "Bienvenue") + (app.expectedSaving ? " ]" : "")
+            }
+        >
             {!app.wallet ? (
                 <Container
                     size={"md"}

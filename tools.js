@@ -338,6 +338,13 @@ const isValidIBANNumber = (input) => {
 
 const uid = () => String(Date.now().toString(32) + Math.random().toString(16)).replace(/\./g, "");
 
+const currencyFormatter = (amount, currency = "EUR") => {
+    return amount.toLocaleString(packagejson.i18n.defaultLocale, {
+        style: "currency",
+        currency: currency
+    });
+};
+
 module.exports = {
     slugify,
     writeJson,
@@ -359,5 +366,6 @@ module.exports = {
     uid,
     hashCode,
     intToRGB,
-    strToColor
+    strToColor,
+    currencyFormatter
 };

@@ -3,28 +3,37 @@ import packagejson from "../../package.json";
 import React, { cloneElement, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { Text, Group, Loader, Stack, NavLink, Divider, Space } from "@mantine/core";
+import { Text, Group, Loader, Stack, NavLink, Divider, Space, Title, Tooltip } from "@mantine/core";
 import {
     IconCash,
-    IconCategory,
     IconCategory2,
+    IconClockPause,
     IconDeviceDesktopAnalytics,
     IconHome2,
+    IconHourglassLow,
     IconSettings2,
     IconUserCheck,
-    IconX
 } from "@tabler/icons";
 import { showNotification } from "@mantine/notifications";
 
 import { AppContext } from "./AppProvider";
 
 import { defaultWalletCategories } from "../../defaults/walletCategories";
+import Currency from "./Currency";
+import CategoriesModal from "./CategoriesModal";
+import PaytypesModal from "./PaytypesModal";
+import ThirdpartiesModal from "./ThirdpartiesModal";
+import PropertiesModal from "./PropertiesModal";
 
 function Dashboard() {
     const app = useContext(AppContext);
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
     const [page, setPage] = useState({ path: "Summaries", options: { id: null } });
+    const [categoriesSettingsOpened, setCategoriesSettingsOpened] = useState(false);
+    const [paytypesSettingsOpened, setPaytypesSettingsOpened] = useState(false);
+    const [thirdpartiesSettingsOpened, setThirdpartiesSettingsOpened] = useState(false);
+    const [propertiesSettingsOpened, setPropertiesSettingsOpened] = useState(false);
 
     useEffect(() => {
         app.setNavbarContent({
@@ -67,6 +76,7 @@ function Dashboard() {
                                 options: { id: null }
                             }))
                         }
+                        disabled={true}
                     />
                     <Space h={"xs"} />
                     <Divider />
@@ -89,6 +99,25 @@ function Dashboard() {
                                         <NavLink
                                             key={item.id}
                                             label={item.name}
+                                            description={
+                                                <Group position={"apart"}>
+                                                    <Tooltip label={"Solde ce jour"} withArrow={true}>
+                                                        <Group spacing={"xs"}>
+                                                            <IconClockPause size={14} stroke={1.5} />
+                                                            <Currency amount={0} currency={item.currency} />
+                                                        </Group>
+                                                    </Tooltip>
+                                                    <Tooltip
+                                                        label={"Solde prévisionnel à la fin du mois"}
+                                                        withArrow={true}
+                                                    >
+                                                        <Group spacing={"xs"}>
+                                                            <IconHourglassLow size={14} stroke={1.5} />
+                                                            <Currency amount={0} currency={item.currency} />
+                                                        </Group>
+                                                    </Tooltip>
+                                                </Group>
+                                            }
                                             active={page.options.id === item.id}
                                             fw={500}
                                             variant={page.options.id === item.id ? "filled" : "subtle"}
@@ -107,20 +136,78 @@ function Dashboard() {
                 </Stack>
             )
         });
-    }, [page]);
+    }, [app.wallet, page]);
 
     useEffect(() => {
         app.purgeWalletToolbarItems();
-        app.addWalletToolbarItem("Catégories", () => {}, <IconCategory2 />);
-        app.addWalletToolbarItem("Moyens de paiements", () => {}, <IconCash />);
-        app.addWalletToolbarItem("Tiers", () => {}, <IconUserCheck />);
-        app.addWalletToolbarItem("Propriété du portefeuille", () => {}, <IconSettings2 />);
+        app.addWalletToolbarItem(
+            "Catégories",
+            () => {
+                setCategoriesSettingsOpened(true);
+            },
+            <IconCategory2 />
+        );
+        app.addWalletToolbarItem(
+            "Moyens de paiements",
+            () => {
+                setPaytypesSettingsOpened(true);
+            },
+            <IconCash />
+        );
+        app.addWalletToolbarItem(
+            "Tiers",
+            () => {
+                setThirdpartiesSettingsOpened(true);
+            },
+            <IconUserCheck />
+        );
+        app.addWalletToolbarItem(
+            "Propriété du portefeuille",
+            () => {
+                setPropertiesSettingsOpened(true);
+            },
+            <IconSettings2 />
+        );
 
         setLoading(false);
     }, []);
 
     return !loading ? (
-        <Text>{page.path + " - " + page.options.id}</Text>
+        <>
+            <CategoriesModal
+                visible={categoriesSettingsOpened}
+                onClose={() => {
+                    setCategoriesSettingsOpened(false);
+                }}
+                categories={app.wallet.categories}
+                onChange={(newCategories) => app.setCategories(newCategories)}
+            />
+            <PaytypesModal
+                visible={paytypesSettingsOpened}
+                onClose={() => {
+                    setPaytypesSettingsOpened(false);
+                }}
+                paytypes={app.wallet.paytypes}
+                onChange={(newPaytypes) => app.setPaytypes(newPaytypes)}
+            />
+            <ThirdpartiesModal
+                visible={thirdpartiesSettingsOpened}
+                onClose={() => {
+                    setThirdpartiesSettingsOpened(false);
+                }}
+                thirdparties={app.wallet.thirdparties}
+                onChange={(newThirdparties) => app.setThirdparties(newThirdparties)}
+            />
+            <PropertiesModal
+                visible={propertiesSettingsOpened}
+                onClose={() => {
+                    setPropertiesSettingsOpened(false);
+                }}
+                properties={{ name: app.wallet.name, note: app.wallet.note, walletItems: app.wallet.walletItems }}
+                onChange={(newProperties) => app.setProperties(newProperties)}
+            />
+            <Text>{page.path + " - " + page.options.id}</Text>
+        </>
     ) : (
         <Group position={"center"} spacing={"xs"}>
             <Loader size={"xs"} variant={"bars"} />
