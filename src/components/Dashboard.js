@@ -1,6 +1,6 @@
 import packagejson from "../../package.json";
 
-import React, { cloneElement, useContext, useEffect, useState } from "react";
+import React, { cloneElement, lazy, Suspense, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Text, Group, Loader, Stack, NavLink, Divider, Space, Title, Tooltip } from "@mantine/core";
@@ -12,13 +12,15 @@ import {
     IconHome2,
     IconHourglassLow,
     IconSettings2,
-    IconUserCheck,
+    IconUserCheck
 } from "@tabler/icons";
 import { showNotification } from "@mantine/notifications";
 
 import { AppContext } from "./AppProvider";
 
 import { defaultWalletCategories } from "../../defaults/walletCategories";
+import defaultWalletItemViewFilter from "../../defaults/walletItemViewFilter";
+import defaultWalletItemViewSorter from "../../defaults/walletItemViewSorter";
 import Currency from "./Currency";
 import CategoriesModal from "./CategoriesModal";
 import PaytypesModal from "./PaytypesModal";
@@ -29,7 +31,7 @@ function Dashboard() {
     const app = useContext(AppContext);
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState({ path: "Summaries", options: { id: null } });
+    const [page, setPage] = useState({ path: "Summaries", options: { item: null }, component: null });
     const [categoriesSettingsOpened, setCategoriesSettingsOpened] = useState(false);
     const [paytypesSettingsOpened, setPaytypesSettingsOpened] = useState(false);
     const [thirdpartiesSettingsOpened, setThirdpartiesSettingsOpened] = useState(false);
@@ -59,7 +61,8 @@ function Dashboard() {
                             setPage((current) => ({
                                 ...current,
                                 path: "Summaries",
-                                options: { id: null }
+                                options: {},
+                                component: lazy(() => import("./Summaries.js"))
                             }))
                         }
                     />
@@ -73,7 +76,8 @@ function Dashboard() {
                             setPage((current) => ({
                                 ...current,
                                 path: "Stats",
-                                options: { id: null }
+                                options: {},
+                                component: null
                             }))
                         }
                         disabled={true}
@@ -104,7 +108,10 @@ function Dashboard() {
                                                     <Tooltip label={"Solde ce jour"} withArrow={true}>
                                                         <Group spacing={"xs"}>
                                                             <IconClockPause size={14} stroke={1.5} />
-                                                            <Currency amount={0} currency={item.currency} />
+                                                            <Currency
+                                                                amount={item.initialAmount}
+                                                                currency={item.currency}
+                                                            />
                                                         </Group>
                                                     </Tooltip>
                                                     <Tooltip
@@ -113,19 +120,31 @@ function Dashboard() {
                                                     >
                                                         <Group spacing={"xs"}>
                                                             <IconHourglassLow size={14} stroke={1.5} />
-                                                            <Currency amount={0} currency={item.currency} />
+                                                            <Currency
+                                                                amount={item.initialAmount}
+                                                                currency={item.currency}
+                                                            />
                                                         </Group>
                                                     </Tooltip>
                                                 </Group>
                                             }
-                                            active={page.options.id === item.id}
+                                            active={page.options.item?.id === item.id}
                                             fw={500}
-                                            variant={page.options.id === item.id ? "filled" : "subtle"}
+                                            variant={page.options.item?.id === item.id ? "filled" : "subtle"}
                                             onClick={() =>
                                                 setPage((current) => ({
                                                     ...current,
                                                     path: "Wallet",
-                                                    options: { id: item.id }
+                                                    options: {
+                                                        item,
+                                                        filters:
+                                                            app.wallet.params?.filters?.walletItemView[item.id] ||
+                                                            defaultWalletItemViewFilter,
+                                                        sorter:
+                                                            app.wallet.params?.sorters?.walletItemView[item.id] ||
+                                                            defaultWalletItemViewSorter
+                                                    },
+                                                    component: lazy(() => import("./Wallet.js"))
                                                 }))
                                             }
                                         />
@@ -177,6 +196,7 @@ function Dashboard() {
             <CategoriesModal
                 visible={categoriesSettingsOpened}
                 onClose={() => {
+                    if (categoriesSettingsOpened && app.expectedSaving) app.save();
                     setCategoriesSettingsOpened(false);
                 }}
                 categories={app.wallet.categories}
@@ -185,6 +205,7 @@ function Dashboard() {
             <PaytypesModal
                 visible={paytypesSettingsOpened}
                 onClose={() => {
+                    if (paytypesSettingsOpened && app.expectedSaving) app.save();
                     setPaytypesSettingsOpened(false);
                 }}
                 paytypes={app.wallet.paytypes}
@@ -193,6 +214,7 @@ function Dashboard() {
             <ThirdpartiesModal
                 visible={thirdpartiesSettingsOpened}
                 onClose={() => {
+                    if (thirdpartiesSettingsOpened && app.expectedSaving) app.save();
                     setThirdpartiesSettingsOpened(false);
                 }}
                 thirdparties={app.wallet.thirdparties}
@@ -201,12 +223,24 @@ function Dashboard() {
             <PropertiesModal
                 visible={propertiesSettingsOpened}
                 onClose={() => {
+                    if (propertiesSettingsOpened && app.expectedSaving) app.save();
                     setPropertiesSettingsOpened(false);
                 }}
                 properties={{ name: app.wallet.name, note: app.wallet.note, walletItems: app.wallet.walletItems }}
                 onChange={(newProperties) => app.setProperties(newProperties)}
             />
-            <Text>{page.path + " - " + page.options.id}</Text>
+            <Suspense
+                fallback={
+                    <Group position={"center"} spacing={"xs"}>
+                        <Loader size={"xs"} variant={"bars"} />
+                        <Text size={"xs"} fw={500}>
+                            Chargement en cours, veuillez patienter SVP...
+                        </Text>
+                    </Group>
+                }
+            >
+                {page.component && cloneElement(<page.component />, page.options)}
+            </Suspense>
         </>
     ) : (
         <Group position={"center"} spacing={"xs"}>

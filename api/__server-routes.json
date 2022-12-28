@@ -1,5 +1,18 @@
 [
-    { "path": "/api/wallet/exists", "controller": "./controllers/wallet/exists.js" },
-    { "path": "/api/wallet/register", "controller": "./controllers/wallet/register.js" },
-    { "path": "/api/wallet/login", "controller": "./controllers/wallet/login.js" }
+    {
+        "path": "/api/wallet/exists",
+        "controller": "./controllers/wallet/exists.js"
+    },
+    {
+        "path": "/api/wallet/register",
+        "controller": "./controllers/wallet/register.js"
+    },
+    {
+        "path": "/api/wallet/login",
+        "controller": "./controllers/wallet/login.js"
+    },
+    {
+        "path": "/api/wallet/savewallet",
+        "controller": "./controllers/wallet/savewallet.js"
+    }
 ]

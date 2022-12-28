@@ -10,8 +10,13 @@ import { showNotification } from "@mantine/notifications";
 
 import { IconThumbUp, IconX } from "@tabler/icons";
 
-import { login } from "../wrappers/wallet_api";
+import { login, saveWallet } from "../wrappers/wallet_api";
 import { decryptData } from "../../tools";
+
+import "dayjs/locale/fr";
+import "dayjs/locale/en";
+import "dayjs/locale/de";
+import "dayjs/locale/es";
 
 export const AppContext = createContext();
 
@@ -43,16 +48,36 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
     const [walletToolbarItems, setWalletToolbarItems] = useState([]);
     const [toolbarItems, setToolbarItems] = useState([]);
     const [expectedSaving, setExpectedSaving] = useState(false);
+    const [saving, setSaving] = useState(false);
 
     let logoutTimout = null;
 
     const save = () => {
-        if (!expectedSaving || !currentPassword) return;
-        console.error("Remember to implement saving!");
+        if (saving || !expectedSaving || !currentPassword) return;
 
-        // enregistrer le fichier metas (wallet) et crypter avec le mot de passe (currentPassword)
+        setSaving(true);
+        saveWallet({ ...wallet, password: currentPassword })
+            .then((response) => {
+                const { saved, errorCode, errorMessage } = response;
 
-        setExpectedSaving(false);
+                if (!saved || errorCode !== 0) {
+                    showNotification({
+                        id: "save-error-notification",
+                        disallowClose: true,
+                        autoClose: 5000,
+                        title: "Sauvegarde de votre portefeuille",
+                        message: errorMessage,
+                        color: "red",
+                        icon: <IconX size={18} />,
+                        loading: false
+                    });
+                } else {
+                    setExpectedSaving(false);
+                }
+            })
+            .finally(() => {
+                setSaving(false);
+            });
     };
 
     const connect = (email, password, saveIdents) =>
@@ -105,7 +130,7 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
         };
 
         const saveAll = () => {
-            if (expectedSaving) {
+            if (prevent && expectedSaving) {
                 openConfirmModal({
                     title: "Votre portefeuille a été modifié",
                     children: (
@@ -183,7 +208,11 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
     };
 
     const setProperties = (newProperties = { password: "", oldPassword: "", name: "", note: "", walletItems: [] }) => {
-        if (newProperties.oldPassword.trim() !== "" && newProperties.oldPassword !== currentPassword) {
+        if (
+            typeof newProperties.oldPassword === "string" &&
+            newProperties.oldPassword.trim() !== "" &&
+            newProperties.oldPassword !== currentPassword
+        ) {
             showNotification({
                 id: "password-error-notification",
                 disallowClose: true,
@@ -194,7 +223,7 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                 icon: <IconX size={18} />,
                 loading: false
             });
-        } else if (newProperties.oldPassword === currentPassword && newProperties.password.trim() !== "") {
+        } else if (newProperties.oldPassword === currentPassword && String(newProperties.oldPassword).trim() !== "") {
             setCurrentPassword(newProperties.password);
             showNotification({
                 id: "password-notification",
@@ -217,11 +246,30 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
         setExpectedSaving(true);
     };
 
+    const setView = (walletItemId, newView) => {
+        setWallet((old) => ({
+            ...old,
+            params: {
+                ...old.params,
+                filters: {
+                    ...old.params.filters,
+                    walletItemView: { ...old.params.filters.walletItemView, [walletItemId]: newView.filters }
+                },
+                sorters: {
+                    ...old.params.sorters,
+                    walletItemView: { ...old.params.filters.walletItemView, [walletItemId]: newView.sorter }
+                }
+            }
+        }));
+        setExpectedSaving(true);
+    };
+
     useEffect(() => {
         if (idle && wallet !== null) {
             if (logoutTimout) clearTimeout(logoutTimout);
 
             logoutTimout = setTimeout(() => {
+                closeAllModals();
                 disconnect();
             }, process.env.AUTO_LOGOUT_ACTION_DELAY);
 
@@ -268,12 +316,14 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                 navbarOpened: opened,
                 wallet,
                 expectedSaving,
+                saving,
                 save,
                 setWallet,
                 setCategories,
                 setPaytypes,
                 setThirdparties,
                 setProperties,
+                setView,
                 disconnect,
                 connect,
                 openNavabar: () => setOpened(true),

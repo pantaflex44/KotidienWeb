@@ -24,3 +24,11 @@ export const login = async (data) => {
     });
     return { metas: null, errorCode: 0, errorMessage: null, ...response.data };
 };
+
+export const saveWallet = async (data) => {
+    const caller = api("/wallet/savewallet", "POST");
+    const response = await caller.request({
+        body: encryptedData2body(data)
+    });
+    return { saved: false, errorCode: 0, errorMessage: null, ...response.data };
+};

@@ -41,6 +41,20 @@ const createWallet = ({ email, password, name, note, walletItems, categories, pa
                 categories,
                 paytypes,
                 thirdparties,
+                params: {
+                    csv: {
+                        separators: {
+                            columns: ";",
+                            decimals: ","
+                        }
+                    },
+                    filters: {
+                        walletItemView: {}
+                    },
+                    sorters: {
+                        walletItemView: {}
+                    }
+                },
                 walletKey: secureKey.generate(32),
                 version: packagejson.version
             },
@@ -81,4 +95,29 @@ const openWalletMetas = ({ email, password }) => {
     }
 };
 
-module.exports = { getWallet, getMetasFile, getWalletFile, walletExists, purgeWallet, createWallet, openWalletMetas };
+const saveWalletMetas = (data) => {
+    try {
+        const { email, password, ...rest } = data;
+
+        if (!walletExists(email)) return false;
+
+        const walletMetasFile = getMetasFile(email);
+        writeJson(walletMetasFile, { ...rest, email }, password);
+
+        return true;
+    } catch (err) {
+        console.error(err);
+        return false;
+    }
+};
+
+module.exports = {
+    getWallet,
+    getMetasFile,
+    getWalletFile,
+    walletExists,
+    purgeWallet,
+    createWallet,
+    openWalletMetas,
+    saveWalletMetas
+};

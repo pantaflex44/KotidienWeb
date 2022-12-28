@@ -15,7 +15,7 @@ import {
     ActionIcon,
     Space,
     Divider,
-    Tooltip,
+    Tooltip
 } from "@mantine/core";
 import { IconAlien, IconDeviceFloppy, IconMoonStars, IconPlugConnectedX, IconSettings, IconSun } from "@tabler/icons";
 
@@ -101,12 +101,12 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                                     <Tooltip label={item.text} key={`toolbarItem_wallet_${idx}`}>
                                                         <ActionIcon
                                                             variant={"subtle"}
-                                                            color={item.color || app.theme.colors.gray[7]}
+                                                            color={item.color || "dark"}
                                                             onClick={item.callback}
                                                         >
                                                             {cloneElement(item.icon || <IconAlien />, {
                                                                 size: 18,
-                                                                stroke: 2.5
+                                                                stroke: 1.5
                                                             })}
                                                         </ActionIcon>
                                                     </Tooltip>
@@ -116,7 +116,10 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                                         <ActionIcon
                                                             variant={"filled"}
                                                             color={"blue"}
-                                                            onClick={() => app.save()}
+                                                            onClick={() => {
+                                                                if (!app.saving) app.save();
+                                                            }}
+                                                            loading={app.saving}
                                                         >
                                                             <IconDeviceFloppy size={16} />
                                                         </ActionIcon>

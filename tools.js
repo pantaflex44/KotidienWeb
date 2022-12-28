@@ -345,6 +345,140 @@ const currencyFormatter = (amount, currency = "EUR") => {
     });
 };
 
+const getFirstDayOfMonth = (year, month) => new Date(year, month, 1);
+
+const getFirstDayOfCurrentMonth = () => {
+    const d = new Date();
+    return getFirstDayOfMonth(d.getFullYear(), d.getMonth());
+};
+
+const getLastDayOfMonth = (year, month) => new Date(year, month + 1, 0);
+
+const getLastDayOfCurrentMonth = () => {
+    const d = new Date();
+    return getLastDayOfMonth(d.getFullYear(), d.getMonth());
+};
+
+const getDatePattern = (locale) => {
+    const options = { year: "numeric", month: "2-digit", day: "2-digit" };
+    const formatter = new Intl.DateTimeFormat(locale, options).formatToParts();
+    return formatter
+        .map(function (e) {
+            switch (e.type) {
+                case "month":
+                    return "MM";
+                    break;
+                case "day":
+                    return "DD";
+                    break;
+                case "year":
+                    return "YYYY";
+                    break;
+                default:
+                    return e.value;
+            }
+        })
+        .join("");
+};
+
+const intervalToDates = (interval) => {
+    let dates = [null, null];
+    const now = new Date();
+
+    const subMonth = (year, month, n) => {
+        let y = year;
+        let m = month - n;
+        while (m < 0) {
+            m = 11 + m;
+            y = y - 1;
+        }
+        return [y, m];
+    };
+
+    const addMonth = (year, month, n) => {
+        let y = year;
+        let m = month + n;
+        while (m > 11) {
+            m = m - 11;
+            y = y + 1;
+        }
+        return [y, m];
+    };
+
+    const i = interval.slice(-1);
+    const n = parseInt(interval.substring(0, interval.length - 1));
+    if (i !== "" && i.length === 1 && !isNaN(n)) {
+        if (i === "d") {
+            let d = new Date();
+            d.setDate(d.getDate() + n);
+            dates[0] = d;
+            dates[1] = now;
+        }
+        if (i === "m") {
+            if (n < 0) {
+                const s = subMonth(now.getFullYear(), now.getMonth(), -n );
+                dates[0] = new Date(s[0], s[1], now.getDate());
+                dates[1] = now;
+            }
+            if (n > 0) {
+                if (n === 1) {
+                    dates[0] = getFirstDayOfMonth(now.getFullYear(), now.getMonth());
+                    dates[1] = getLastDayOfMonth(now.getFullYear(), now.getMonth());
+                }
+                if (n === 3) {
+                    const s =
+                        now.getMonth() >= 1 && now.getMonth() <= 3
+                            ? 1
+                            : now.getMonth() >= 4 && now.getMonth() <= 6
+                            ? 4
+                            : now.getMonth() >= 7 && now.getMonth() <= 9
+                            ? 7
+                            : now.getMonth() >= 10 && now.getMonth() <= 12
+                            ? 10
+                            : 1;
+                    const e =
+                        now.getMonth() >= 1 && now.getMonth() <= 3
+                            ? 3
+                            : now.getMonth() >= 4 && now.getMonth() <= 6
+                            ? 6
+                            : now.getMonth() >= 7 && now.getMonth() <= 9
+                            ? 9
+                            : now.getMonth() >= 10 && now.getMonth() <= 12
+                            ? 12
+                            : 12;
+                    dates[0] = getFirstDayOfMonth(now.getFullYear(), s - 1);
+                    dates[1] = getLastDayOfMonth(now.getFullYear(), e - 1);
+                }
+                if (n === 6) {
+                    const s =
+                        now.getMonth() >= 1 && now.getMonth() <= 6
+                            ? 1
+                            : now.getMonth() >= 7 && now.getMonth() <= 12
+                            ? 7
+                            : 1;
+                    const e =
+                        now.getMonth() >= 1 && now.getMonth() <= 6
+                            ? 6
+                            : now.getMonth() >= 7 && now.getMonth() <= 12
+                            ? 12
+                            : 12;
+                    dates[0] = getFirstDayOfMonth(now.getFullYear(), s - 1);
+                    dates[1] = getLastDayOfMonth(now.getFullYear(), e - 1);
+                }
+                if (n === 12) {
+                    dates[0] = getFirstDayOfMonth(now.getFullYear(), 0);
+                    dates[1] = getLastDayOfMonth(now.getFullYear(), 11);
+                }
+            }
+        }
+        if (i === "y") {
+            dates[0] = getFirstDayOfMonth(now.getFullYear() + n, 0);
+            dates[1] = getLastDayOfMonth(now.getFullYear() + n, 11);
+        }
+    }
+    return dates;
+};
+
 module.exports = {
     slugify,
     writeJson,
@@ -367,5 +501,11 @@ module.exports = {
     hashCode,
     intToRGB,
     strToColor,
-    currencyFormatter
+    currencyFormatter,
+    getFirstDayOfMonth,
+    getFirstDayOfCurrentMonth,
+    getLastDayOfMonth,
+    getLastDayOfCurrentMonth,
+    getDatePattern,
+    intervalToDates
 };
