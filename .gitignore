@@ -6,4 +6,4 @@
 /dist
 /certs/localhost.cer
 /certs/localhost.key
-/data/*
+/data/*/
