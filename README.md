@@ -28,3 +28,7 @@ Kotidien est sous licence libre et open-source. Cette licence vous permet de red
 ![Elément financier](./screenshots/screenshot-wallet.png "Elément financier")
 
 ![Catégories](./screenshots/screenshot-categories.png "Catégories")
+
+![Liste des opérations](./screenshots/screenshot-walletitem.png "Liste des opérations")
+
+![Nouvelle opération](./screenshots/screenshot-newope.png "Nouvelle opération")

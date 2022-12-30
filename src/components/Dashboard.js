@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 import { Text, Group, Loader, Stack, NavLink, Divider, Space, Title, Tooltip } from "@mantine/core";
 import {
+    IconAlertTriangle,
     IconCash,
     IconCategory2,
     IconClockPause,
@@ -27,6 +28,8 @@ import PaytypesModal from "./PaytypesModal";
 import ThirdpartiesModal from "./ThirdpartiesModal";
 import PropertiesModal from "./PropertiesModal";
 
+import dayjs from "dayjs";
+
 function Dashboard() {
     const app = useContext(AppContext);
     const navigate = useNavigate();
@@ -36,6 +39,7 @@ function Dashboard() {
     const [paytypesSettingsOpened, setPaytypesSettingsOpened] = useState(false);
     const [thirdpartiesSettingsOpened, setThirdpartiesSettingsOpened] = useState(false);
     const [propertiesSettingsOpened, setPropertiesSettingsOpened] = useState(false);
+    const [currentDate, setCurrentDate] = useState(dayjs());
 
     useEffect(() => {
         app.setNavbarContent({
@@ -107,9 +111,21 @@ function Dashboard() {
                                                 <Group position={"apart"}>
                                                     <Tooltip label={"Solde ce jour"} withArrow={true}>
                                                         <Group spacing={"xs"}>
-                                                            <IconClockPause size={14} stroke={1.5} />
+                                                            {item.initialAmount + (app.amounts.today[item.id] || 0.0) <
+                                                            -item.overdraft ? (
+                                                                <IconAlertTriangle
+                                                                    size={14}
+                                                                    stroke={1.5}
+                                                                    color={"red"}
+                                                                />
+                                                            ) : (
+                                                                <IconClockPause size={14} stroke={1.5} />
+                                                            )}
                                                             <Currency
-                                                                amount={item.initialAmount}
+                                                                amount={
+                                                                    item.initialAmount +
+                                                                    (app.amounts.today[item.id] || 0.0)
+                                                                }
                                                                 currency={item.currency}
                                                             />
                                                         </Group>
@@ -119,9 +135,22 @@ function Dashboard() {
                                                         withArrow={true}
                                                     >
                                                         <Group spacing={"xs"}>
-                                                            <IconHourglassLow size={14} stroke={1.5} />
+                                                            {item.initialAmount +
+                                                                (app.amounts.endMonth[item.id] || 0.0) <
+                                                            -item.overdraft ? (
+                                                                <IconAlertTriangle
+                                                                    size={14}
+                                                                    stroke={1.5}
+                                                                    color={"red"}
+                                                                />
+                                                            ) : (
+                                                                <IconHourglassLow size={14} stroke={1.5} />
+                                                            )}
                                                             <Currency
-                                                                amount={item.initialAmount}
+                                                                amount={
+                                                                    item.initialAmount +
+                                                                    (app.amounts.endMonth[item.id] || 0.0)
+                                                                }
                                                                 currency={item.currency}
                                                             />
                                                         </Group>
@@ -155,7 +184,7 @@ function Dashboard() {
                 </Stack>
             )
         });
-    }, [app.wallet, page]);
+    }, [app.wallet, app.amounts, page]);
 
     useEffect(() => {
         app.purgeWalletToolbarItems();
@@ -188,7 +217,23 @@ function Dashboard() {
             <IconSettings2 />
         );
 
+        const timeInterval = setInterval(() => {
+            setCurrentDate((old) => {
+                const cur = dayjs();
+                if (!old || cur.format("YYYY-MM-DD") !== old.format("YYYY-MM-DD")) {
+                    app.refreshAmounts();
+                    return cur;
+                }
+                return old;
+            });
+        }, 1000);
+        app.refreshAmounts();
+
         setLoading(false);
+
+        return () => {
+            if (timeInterval) clearInterval(timeInterval);
+        };
     }, []);
 
     return !loading ? (

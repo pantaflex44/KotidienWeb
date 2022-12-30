@@ -22,6 +22,8 @@ module.exports = class Db {
             const migration = fs.readFileSync(model, { encoding: "utf-8" });
             this.data.exec(migration);
         }
+
+        return this.data;
     }
 
     save() {
@@ -33,4 +35,5 @@ module.exports = class Db {
     close() {
         this.data.close();
     }
+
 };

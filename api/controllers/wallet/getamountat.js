@@ -1,6 +1,6 @@
 const { Router, response } = require("express");
 const multer = require("multer");
-const { walletExists, saveWalletMetas, purgeWallet } = require("../../../src/wrappers/wallet_lib");
+const { getAmountAt, walletExists } = require("../../../src/wrappers/wallet_lib");
 const { decryptBodyData } = require("../../../tools");
 
 const upload = multer();
@@ -11,19 +11,19 @@ router.post("/", upload.none(), async (req, res = response) => {
         const data = decryptBodyData(req.body);
         const { email } = data;
 
-        let response = { saved: false, errorCode: 0, errorMessage: null };
+        let response = { amount: 0.0, errorCode: 0, errorMessage: null };
 
         if (!walletExists(email)) {
             return res.status(200).send({
                 ...response,
-                errorCode: 401,
-                errorMessage: "Enregistrement non autorisé pour ce compte!"
+                errorCode: 404,
+                errorMessage: "Compte utilisateur inconnu!"
             });
         }
 
-        const saved = saveWalletMetas(data);
+        const amount = await getAmountAt(data);
 
-        res.status(200).send({ ...response, saved });
+        res.status(200).send({ ...response, amount });
     } catch (err) {
         console.error(err);
         res.sendStatus(500);

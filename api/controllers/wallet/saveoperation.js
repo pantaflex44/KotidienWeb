@@ -1,6 +1,6 @@
 const { Router, response } = require("express");
 const multer = require("multer");
-const { walletExists, saveWalletMetas, purgeWallet } = require("../../../src/wrappers/wallet_lib");
+const { walletExists, saveOperation } = require("../../../src/wrappers/wallet_lib");
 const { decryptBodyData } = require("../../../tools");
 
 const upload = multer();
@@ -21,7 +21,7 @@ router.post("/", upload.none(), async (req, res = response) => {
             });
         }
 
-        const saved = saveWalletMetas(data);
+        const saved = await saveOperation(data);
 
         res.status(200).send({ ...response, saved });
     } catch (err) {

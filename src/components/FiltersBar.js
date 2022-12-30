@@ -200,7 +200,7 @@ function FiltersBar({
                         onChange={(v) => {
                             updateFilters({ categories: v });
                         }}
-                        sx={(theme) => ({ width: "500px", maxWidth: "100%" })}
+                        sx={(theme) => ({ minWidth: "250px", width: "100%", maxWidth: "490px" })}
                         disabled={disableState}
                     />
                     <MultiSelect
@@ -215,7 +215,7 @@ function FiltersBar({
                         onChange={(v) => {
                             updateFilters({ thirdparties: v });
                         }}
-                        sx={(theme) => ({ width: "500px", maxWidth: "100%" })}
+                        sx={(theme) => ({ minWidth: "250px", width: "100%", maxWidth: "490px" })}
                         disabled={disableState}
                     />
                 </Group>

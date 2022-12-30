@@ -536,6 +536,7 @@ function Register() {
                                                     </Text>
                                                     <Space h={"xs"} />
                                                     <ItemsList
+                                                        id="paytype"
                                                         {...registerForm.getInputProps("paytypes")}
                                                         useColors={false}
                                                         translate={{
@@ -565,6 +566,7 @@ function Register() {
                                                     </Text>
                                                     <Space h={"xs"} />
                                                     <ItemsList
+                                                        id="thirdparty"
                                                         {...registerForm.getInputProps("thirdparties")}
                                                         useColors={false}
                                                         translate={{

@@ -10,8 +10,8 @@ import { showNotification } from "@mantine/notifications";
 
 import { IconThumbUp, IconX } from "@tabler/icons";
 
-import { login, saveWallet } from "../wrappers/wallet_api";
-import { decryptData } from "../../tools";
+import { getAmountAt, login, saveWallet } from "../wrappers/wallet_api";
+import { decryptData, getLastDayOfMonth, toSqlDate } from "../../tools";
 
 import "dayjs/locale/fr";
 import "dayjs/locale/en";
@@ -49,6 +49,7 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
     const [toolbarItems, setToolbarItems] = useState([]);
     const [expectedSaving, setExpectedSaving] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [amounts, setAmounts] = useState({ today: {}, endMonth: {} });
 
     let logoutTimout = null;
 
@@ -78,6 +79,62 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
             .finally(() => {
                 setSaving(false);
             });
+    };
+
+    const saveAsync = () =>
+        new Promise((resolve, reject) => {
+            if (saving || !expectedSaving || !currentPassword) {
+                resolve();
+                return;
+            }
+
+            setSaving(true);
+            saveWallet({ ...wallet, password: currentPassword }).then((response) => {
+                const { saved, errorCode, errorMessage } = response;
+
+                if (!saved || errorCode !== 0) {
+                    showNotification({
+                        id: "save-error-notification",
+                        disallowClose: true,
+                        autoClose: 5000,
+                        title: "Sauvegarde de votre portefeuille",
+                        message: errorMessage,
+                        color: "red",
+                        icon: <IconX size={18} />,
+                        loading: false
+                    });
+                    setSaving(false);
+                    reject({ errorCode, errorMessage });
+                } else {
+                    setExpectedSaving(false);
+                    resolve();
+                }
+            });
+        });
+
+    const refreshAmounts = () => {
+        if (!wallet || !wallet.walletItems) return;
+
+        const now = new Date();
+        const lastDayOfMonth = getLastDayOfMonth(now.getFullYear(), now.getMonth());
+
+        wallet.walletItems.map((item) => {
+            getAmountAt(wallet.email, item.id, toSqlDate(now)).then((response) => {
+                const { amount, errorCode, errorMessage } = response;
+
+                if (errorCode === 0) {
+                    setAmounts((current) => ({ ...current, today: { ...current.today, [item.id]: amount } }));
+                }
+            });
+
+            getAmountAt(wallet.email, item.id, toSqlDate(lastDayOfMonth)).then((response) => {
+                const { amount, errorCode, errorMessage } = response;
+
+                if (errorCode === 0) {
+                    setAmounts((current) => ({ ...current, endMonth: { ...current.endMonth, [item.id]: amount } }));
+                }
+            });
+        });
     };
 
     const connect = (email, password, saveIdents) =>
@@ -110,7 +167,7 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                     const newWallet = decryptData(metas);
 
                     setExpectedSaving(false);
-                    setWallet(newWallet);
+                    setWallet((current) => newWallet);
                     setCurrentPassword(password);
 
                     resolve(newWallet);
@@ -273,6 +330,7 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                 disconnect();
             }, process.env.AUTO_LOGOUT_ACTION_DELAY);
 
+            closeAllModals();
             openConfirmModal({
                 title: "Toc toc! Il y a quelqu'un?",
                 children: (
@@ -293,6 +351,7 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                 overlayColor: theme.colorScheme === "dark" ? theme.colors.dark[9] : theme.colors.gray[2],
                 overlayOpacity: 0.55,
                 overlayBlur: 3,
+                zIndex: 10000,
                 onConfirm: () => disconnect()
             });
         }
@@ -318,6 +377,7 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                 expectedSaving,
                 saving,
                 save,
+                saveAsync,
                 setWallet,
                 setCategories,
                 setPaytypes,
@@ -326,6 +386,8 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                 setView,
                 disconnect,
                 connect,
+                refreshAmounts,
+                amounts,
                 openNavabar: () => setOpened(true),
                 closeNavbar: () => setOpened(false),
                 toggleNavbar: () => setOpened((old) => !old),

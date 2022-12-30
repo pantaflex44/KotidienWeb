@@ -21,7 +21,7 @@ router.post("/", upload.none(), async (req, res = response) => {
             });
         }
 
-        const created = createWallet(data);
+        const created = await createWallet(data);
         if (!created) {
             purgeWallet(email);
 

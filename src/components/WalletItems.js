@@ -1,3 +1,5 @@
+import { defaultWalletCategories } from "../../defaults/walletCategories";
+
 import React, { useEffect, useState, cloneElement } from "react";
 import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
 import ReactInputMask from "react-input-mask";
@@ -40,7 +42,6 @@ import {
     IconWallet
 } from "@tabler/icons";
 
-import { defaultWalletCategories } from "../../defaults/walletCategories";
 import { isValidIBANNumber, uid } from "../../tools";
 
 function WalletItemControl({ category, modalHandlers, children, ...props }) {
@@ -230,7 +231,7 @@ function WalletItems({ categories = defaultWalletCategories, value = [], onChang
                                     label="Découvert autorisé"
                                     precision={2}
                                     step={0.01}
-                                    min={0.0}
+                                    min={0}
                                     icon={<IconCurrencyEuro size={18} />}
                                     {...addEditForm.getInputProps("_overdraft")}
                                     withAsterisk={true}

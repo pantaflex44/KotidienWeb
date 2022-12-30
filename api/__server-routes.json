@@ -14,5 +14,13 @@
     {
         "path": "/api/wallet/savewallet",
         "controller": "./controllers/wallet/savewallet.js"
+    },
+    {
+        "path": "/api/wallet/saveoperation",
+        "controller": "./controllers/wallet/saveoperation.js"
+    },
+    {
+        "path": "/api/wallet/getamountat",
+        "controller": "./controllers/wallet/getamountat.js"
     }
 ]

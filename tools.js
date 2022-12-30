@@ -352,24 +352,34 @@ const getFirstDayOfCurrentMonth = () => {
     return getFirstDayOfMonth(d.getFullYear(), d.getMonth());
 };
 
-const getLastDayOfMonth = (year, month) => new Date(year, month + 1, 0);
+const getLastDayOfMonth = (year, month) => new Date(year, month + 1, 1);
 
 const getLastDayOfCurrentMonth = () => {
     const d = new Date();
     return getLastDayOfMonth(d.getFullYear(), d.getMonth());
 };
 
-const getDatePattern = (locale) => {
-    const options = { year: "numeric", month: "2-digit", day: "2-digit" };
+const toSqlDate = (date) => {
+    return [
+        date.getFullYear().toString(),
+        ("00" + (date.getMonth() + 1).toString()).slice(-2),
+        ("00" + date.getDate().toString()).slice(-2)
+    ].join("-");
+};
+
+const datePatternFormatter = (locale, options, long = false) => {
     const formatter = new Intl.DateTimeFormat(locale, options).formatToParts();
     return formatter
         .map(function (e) {
             switch (e.type) {
+                case "weekday":
+                    return "dddd";
+                    break;
                 case "month":
-                    return "MM";
+                    return long ? "MMMM" : "MM";
                     break;
                 case "day":
-                    return "DD";
+                    return long ? "D" : "DD";
                     break;
                 case "year":
                     return "YYYY";
@@ -379,6 +389,22 @@ const getDatePattern = (locale) => {
             }
         })
         .join("");
+};
+
+const getDatePattern = (locale, long = false) => {
+    let options = { year: "numeric", month: "2-digit", day: "2-digit" };
+    if (long) options = { weekday: "long", year: "numeric", month: "long", day: "numeric" };
+    return datePatternFormatter(locale, options, long);
+};
+
+const getLongDayDatePattern = (locale) => {
+    const options = { weekday: "long", day: "numeric" };
+    return datePatternFormatter(locale, options, true);
+};
+
+const getLongMonthYearPattern = (locale) => {
+    const options = { year: "numeric", month: "long" };
+    return datePatternFormatter(locale, options, true);
 };
 
 const intervalToDates = (interval) => {
@@ -416,7 +442,7 @@ const intervalToDates = (interval) => {
         }
         if (i === "m") {
             if (n < 0) {
-                const s = subMonth(now.getFullYear(), now.getMonth(), -n );
+                const s = subMonth(now.getFullYear(), now.getMonth(), -n);
                 dates[0] = new Date(s[0], s[1], now.getDate());
                 dates[1] = now;
             }
@@ -507,5 +533,8 @@ module.exports = {
     getLastDayOfMonth,
     getLastDayOfCurrentMonth,
     getDatePattern,
-    intervalToDates
+    getLongDayDatePattern,
+    getLongMonthYearPattern,
+    intervalToDates,
+    toSqlDate
 };

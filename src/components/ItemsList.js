@@ -169,7 +169,7 @@ const ItemElement = memo(
     }
 );
 
-function ItemsList({ value = [], onChange = null, useColors = true, translate = {} }) {
+function ItemsList({ id = "itemElement", value = [], onChange = null, useColors = true, translate = {} }) {
     translate = {
         ...{
             newItem: "Nouvel élément",
@@ -234,7 +234,7 @@ function ItemsList({ value = [], onChange = null, useColors = true, translate = 
 
     const addForm = useForm({
         initialValues: {
-            id: `itemElement_${uid()}`,
+            id: `${id}_${uid()}`,
             name: translate.newItem
         },
         validate: {
@@ -243,7 +243,7 @@ function ItemsList({ value = [], onChange = null, useColors = true, translate = 
     });
 
     const addItemElement = () => {
-        addForm.setValues({ id: `itemElement_${uid()}`, name: translate.newItem });
+        addForm.setValues({ id: `${id}_${uid()}`, name: translate.newItem });
         setAddModalOpened(true);
     };
 
@@ -310,7 +310,7 @@ function ItemsList({ value = [], onChange = null, useColors = true, translate = 
     return (
         <>
             <Modal
-                id={`itemElement-add-${uid()}`}
+                id={`${id}-add-${uid()}`}
                 opened={addModalOpened}
                 onClose={() => setAddModalOpened(false)}
                 title={translate.newItem}

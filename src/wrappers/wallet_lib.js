@@ -53,7 +53,8 @@ const createWallet = ({ email, password, name, note, walletItems, categories, pa
                     },
                     sorters: {
                         walletItemView: {}
-                    }
+                    },
+                    views: { showResumeBox: true }
                 },
                 walletKey: secureKey.generate(32),
                 version: packagejson.version
@@ -62,7 +63,7 @@ const createWallet = ({ email, password, name, note, walletItems, categories, pa
         );
 
         const db = new Db(getWalletFile(email));
-        const created = db
+        return db
             .open()
             .then(() => {
                 db.save();
@@ -73,8 +74,6 @@ const createWallet = ({ email, password, name, note, walletItems, categories, pa
                 console.log(err);
                 return false;
             });
-
-        return created;
     } catch (err) {
         console.error(err);
         return false;
@@ -111,6 +110,104 @@ const saveWalletMetas = (data) => {
     }
 };
 
+const saveOperation = (data) => {
+    try {
+        const { email, id, type, toWalletItemId, amount, comment, title, date, state, ...rest } = data;
+        console.log(data);
+        let queryParams = {
+            id,
+            type,
+            toWalletItemId,
+            amount,
+            comment,
+            title,
+            date,
+            state
+        };
+
+        if (type === "operation") {
+            const { categoryId, paytypeId, thirdpartyId } = rest;
+            queryParams = { ...queryParams, categoryId, paytypeId, thirdpartyId };
+        } else if (type === "transfer") {
+            const { fromWalletItemId } = rest;
+            queryParams = { ...queryParams, fromWalletItemId };
+        }
+
+        const db = new Db(getWalletFile(email));
+        const saved = db
+            .open()
+            .then((conn) => {
+                const query = `INSERT INTO Operations (${Object.keys(queryParams).join(", ")}) VALUES (${Object.keys(
+                    queryParams
+                )
+                    .map((k) => `:${k}`)
+                    .join(", ")})`;
+                const values = Object.fromEntries(Object.keys(queryParams).map((k) => [[`:${k}`], queryParams[k]]));
+
+                conn.run(query, values);
+                db.save();
+                db.close();
+
+                return true;
+            })
+            .catch((err) => {
+                db.close();
+                console.log(err);
+                return false;
+            })
+            .finally(() => {
+                db.close();
+            });
+
+        return saved;
+    } catch (err) {
+        console.error(err);
+        return false;
+    }
+};
+
+const getAmountAt = (data) => {
+    try {
+        const { email, walletId, date } = data;
+        const bind = { ":date": date, ":walletId": walletId };
+
+        const db = new Db(getWalletFile(email));
+        const amount = db
+            .open()
+            .then((conn) => {
+                const opeStmt = conn.prepare(
+                    "SELECT SUM(amount) FROM Operations WHERE DATE(date) <= DATE(:date) AND toWalletItemId = :walletId"
+                );
+                const opeResult = (opeStmt.get(bind) || []).filter((r) => r !== null);
+
+                const trfStmt = conn.prepare(
+                    "SELECT SUM(amount) FROM Operations WHERE DATE(date) <= DATE(:date) AND fromWalletItemId = :walletId"
+                );
+                const trfResult = (trfStmt.get(bind) || []).filter((r) => r !== null).map((r) => (r < 0 ? r * -1 : r));
+
+                db.close();
+
+                const opeAmount = opeResult.reduce((a, b) => a + b, 0);
+                const trfAmount = trfResult.reduce((a, b) => a + b, 0);
+
+                return opeAmount + trfAmount;
+            })
+            .catch((err) => {
+                db.close();
+                console.log("sql", err);
+                return 0.0;
+            })
+            .finally(() => {
+                db.close();
+            });
+
+        return amount;
+    } catch (err) {
+        console.error("error", err);
+        return 0.0;
+    }
+};
+
 module.exports = {
     getWallet,
     getMetasFile,
@@ -119,5 +216,7 @@ module.exports = {
     purgeWallet,
     createWallet,
     openWalletMetas,
-    saveWalletMetas
+    saveWalletMetas,
+    saveOperation,
+    getAmountAt
 };

@@ -32,3 +32,19 @@ export const saveWallet = async (data) => {
     });
     return { saved: false, errorCode: 0, errorMessage: null, ...response.data };
 };
+
+export const saveOperation = async (email, data) => {
+    const caller = api("/wallet/saveoperation", "POST");
+    const response = await caller.request({
+        body: encryptedData2body({ email, ...data })
+    });
+    return { saved: false, errorCode: 0, errorMessage: null, ...response.data };
+};
+
+export const getAmountAt = async (email, walletId, date) => {
+    const caller = api("/wallet/getamountat", "POST");
+    const response = await caller.request({
+        body: encryptedData2body({ email, walletId, date })
+    });
+    return { amount: 0.0, errorCode: 0, errorMessage: null, ...response.data };
+};

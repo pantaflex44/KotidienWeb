@@ -38,9 +38,9 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                             }
                         }}
                         fixed={true}
-                        navbarOffsetBreakpoint="md"
+                        navbarOffsetBreakpoint="lg"
                         navbar={
-                            <Navbar p="md" hiddenBreakpoint="md" hidden={!value.navbarOpened} width={{ sm: 350 }}>
+                            <Navbar p="md" hiddenBreakpoint="lg" hidden={!value.navbarOpened} width={{ sm: 400 }}>
                                 <Navbar.Section mt="xs">{value.navbar.header ?? navbar.header ?? ""}</Navbar.Section>
 
                                 <Navbar.Section grow component={ScrollArea} mx="-xs" px="xs">
@@ -142,11 +142,11 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                     <Text size={"xs"}>Copyright (c)2022-2023 {packagejson.author.name}</Text>
                                     <Text size={"xs"}>
                                         <Anchor
-                                            href="https://github.com/pantaflex44/Kotidien"
+                                            href="https://github.com/pantaflex44/KotidienWeb"
                                             target={"_blank"}
                                             rel={"noreferer"}
                                         >
-                                            https://github.com/pantaflex44/Kotidien
+                                            https://github.com/pantaflex44/KotidienWeb
                                         </Anchor>
                                     </Text>
                                     <Text size={"xs"}>
@@ -186,7 +186,7 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                         </Text>
                                     </MediaQuery>
 
-                                    <MediaQuery largerThan="md" styles={{ display: "none" }}>
+                                    <MediaQuery largerThan="lg" styles={{ display: "none" }}>
                                         <Burger
                                             opened={value.navbarOpened}
                                             onClick={() => value.setNavbarState(!value.navbarOpened)}
