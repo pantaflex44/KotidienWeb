@@ -1,6 +1,6 @@
 import packagejson from "../../package.json";
 
-import React, { useEffect, useState, createContext } from "react";
+import React, { useEffect, useState, createContext, useMemo, useCallback } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 
 import { Text, useMantineTheme } from "@mantine/core";
@@ -112,8 +112,8 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
             });
         });
 
-    const refreshAmounts = () => {
-        if (!wallet || !wallet.walletItems) return;
+    const refreshAmounts = useCallback(() => {
+        if (!wallet?.walletItems) return;
 
         const now = new Date();
         const lastDayOfMonth = getLastDayOfMonth(now.getFullYear(), now.getMonth());
@@ -135,7 +135,7 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                 }
             });
         });
-    };
+    }, [wallet?.email, wallet?.walletItems]);
 
     const connect = (email, password, saveIdents) =>
         new Promise((resolve, reject) => {
@@ -372,10 +372,10 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                 colorScheme,
                 toggleColorScheme,
                 navbar,
-                navbarOpened: opened,
-                wallet,
-                expectedSaving,
-                saving,
+                navbarOpened: useMemo(() => opened, [opened]),
+                wallet: useMemo(() => wallet, [wallet]),
+                expectedSaving: useMemo(() => expectedSaving, [expectedSaving]),
+                saving: useMemo(() => saving, [saving]),
                 save,
                 saveAsync,
                 setWallet,
@@ -387,7 +387,7 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                 disconnect,
                 connect,
                 refreshAmounts,
-                amounts,
+                amounts: useMemo(() => amounts, [amounts]),
                 openNavabar: () => setOpened(true),
                 closeNavbar: () => setOpened(false),
                 toggleNavbar: () => setOpened((old) => !old),
@@ -397,12 +397,12 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                     setWalletToolbarItems((current) => [...current, { text, callback, icon, color }]);
                 },
                 purgeWalletToolbarItems: () => setWalletToolbarItems([]),
-                walletToolbarItems,
+                walletToolbarItems: useMemo(() => walletToolbarItems, [walletToolbarItems]),
                 addToolbarItem: (text, callback, icon = null, color = null) => {
                     setToolbarItems((current) => [...current, { text, callback, icon, color }]);
                 },
                 purgeToolbarItems: () => setToolbarItems([]),
-                toolbarItems
+                toolbarItems: useMemo(() => toolbarItems, [toolbarItems])
             }}
         >
             {children}

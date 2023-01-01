@@ -15,7 +15,8 @@ import {
     ActionIcon,
     Space,
     Divider,
-    Tooltip
+    Tooltip,
+    Footer
 } from "@mantine/core";
 import { IconAlien, IconDeviceFloppy, IconMoonStars, IconPlugConnectedX, IconSettings, IconSun } from "@tabler/icons";
 
@@ -29,89 +30,70 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
             {(value) => {
                 return (
                     <AppShell
-                        styles={{
-                            main: {
-                                background:
-                                    value.theme.colorScheme === "dark"
-                                        ? value.theme.colors.dark[8]
-                                        : value.theme.colors.gray[0]
-                            }
-                        }}
-                        fixed={true}
-                        navbarOffsetBreakpoint="lg"
-                        navbar={
-                            <Navbar p="md" hiddenBreakpoint="lg" hidden={!value.navbarOpened} width={{ sm: 400 }}>
-                                <Navbar.Section mt="xs">{value.navbar.header ?? navbar.header ?? ""}</Navbar.Section>
-
-                                <Navbar.Section grow component={ScrollArea} mx="-xs" px="xs">
-                                    {value.navbar.content ?? navbar.content ?? ""}
-                                </Navbar.Section>
-
-                                <Navbar.Section>
-                                    <Space h="lg" />
-                                    <Divider variant="dotted" />
-                                    <Group
-                                        position={"apart"}
-                                        spacing={"md"}
-                                        p={"xs"}
-                                        sx={(theme) => ({
-                                            backgroundColor:
-                                                theme.colorScheme === "dark"
-                                                    ? theme.colors.dark[8]
-                                                    : theme.colors.gray[0]
-                                        })}
-                                    >
-                                        {value.path === "/" && (
-                                            <Group position={"left"} spacing={"md"}>
-                                                <Tooltip
-                                                    label={
-                                                        value.colorScheme === "dark"
-                                                            ? "Basculer sur le thème clair (Ctrl+J)"
-                                                            : "Basculer sur le thème sombre (Ctrl+J)"
-                                                    }
+                        footer={
+                            <Footer
+                                p={"xs"}
+                                height={52}
+                                sx={(theme) => ({
+                                    backgroundColor:
+                                        theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0]
+                                })}
+                            >
+                                <Group position={"center"} spacing={"md"}>
+                                    {
+                                        <Group position={"left"} spacing={"md"}>
+                                            <Tooltip
+                                                label={
+                                                    value.colorScheme === "dark"
+                                                        ? "Basculer sur le thème clair (Ctrl+J)"
+                                                        : "Basculer sur le thème sombre (Ctrl+J)"
+                                                }
+                                            >
+                                                <ActionIcon
+                                                    variant={"filled"}
+                                                    color={value.colorScheme === "light" ? "yellow" : "gray"}
+                                                    onClick={() => value.toggleColorScheme()}
                                                 >
+                                                    {value.colorScheme === "light" ? (
+                                                        <IconSun size={18} stroke={2.5} />
+                                                    ) : (
+                                                        <IconMoonStars size={18} stroke={2.5} />
+                                                    )}
+                                                </ActionIcon>
+                                            </Tooltip>
+                                            {app.toolbarItems.map((item, idx) => (
+                                                <Tooltip label={item.text} key={`toolbarItem_${idx}`}>
                                                     <ActionIcon
                                                         variant={"filled"}
-                                                        color={value.colorScheme === "light" ? "yellow" : "gray"}
-                                                        onClick={() => value.toggleColorScheme()}
+                                                        color={item.color || app.theme.colors.gray[7]}
+                                                        onClick={item.callback}
                                                     >
-                                                        {value.colorScheme === "light" ? (
-                                                            <IconSun size={18} stroke={2.5} />
-                                                        ) : (
-                                                            <IconMoonStars size={18} stroke={2.5} />
-                                                        )}
+                                                        {cloneElement(item.icon || <IconAlien />, { size: 18 })}
                                                     </ActionIcon>
                                                 </Tooltip>
-                                                {app.toolbarItems.map((item, idx) => (
-                                                    <Tooltip label={item.text} key={`toolbarItem_${idx}`}>
-                                                        <ActionIcon
-                                                            variant={"filled"}
-                                                            color={item.color || app.theme.colors.gray[7]}
-                                                            onClick={item.callback}
-                                                        >
-                                                            {cloneElement(item.icon || <IconAlien />, { size: 18 })}
-                                                        </ActionIcon>
-                                                    </Tooltip>
-                                                ))}
-                                            </Group>
-                                        )}
-                                        {app.wallet && (
-                                            <Group position={"right"} spacing={"md"}>
-                                                {app.walletToolbarItems.map((item, idx) => (
-                                                    <Tooltip label={item.text} key={`toolbarItem_wallet_${idx}`}>
-                                                        <ActionIcon
-                                                            variant={"subtle"}
-                                                            color={item.color || "dark"}
-                                                            onClick={item.callback}
-                                                        >
-                                                            {cloneElement(item.icon || <IconAlien />, {
-                                                                size: 18,
-                                                                stroke: 1.5
-                                                            })}
-                                                        </ActionIcon>
-                                                    </Tooltip>
-                                                ))}
-                                                {app.expectedSaving && (
+                                            ))}
+                                        </Group>
+                                    }
+                                    {app.wallet && (
+                                        <Group position={"right"} spacing={"md"}>
+                                            <Divider orientation={"vertical"} />
+                                            {app.walletToolbarItems.map((item, idx) => (
+                                                <Tooltip label={item.text} key={`toolbarItem_wallet_${idx}`}>
+                                                    <ActionIcon
+                                                        variant={"subtle"}
+                                                        color={item.color || "dark"}
+                                                        onClick={item.callback}
+                                                    >
+                                                        {cloneElement(item.icon || <IconAlien />, {
+                                                            size: 18,
+                                                            stroke: 1.5
+                                                        })}
+                                                    </ActionIcon>
+                                                </Tooltip>
+                                            ))}
+                                            {app.expectedSaving && (
+                                                <>
+                                                    <Divider orientation={"vertical"} />
                                                     <Tooltip label={"Enregistrer"}>
                                                         <ActionIcon
                                                             variant={"filled"}
@@ -124,19 +106,34 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                                             <IconDeviceFloppy size={16} />
                                                         </ActionIcon>
                                                     </Tooltip>
-                                                )}
-                                                <Tooltip label={"Me déconnecter"}>
-                                                    <ActionIcon
-                                                        variant={"filled"}
-                                                        color={"red"}
-                                                        onClick={() => app.disconnect(true)}
-                                                    >
-                                                        <IconPlugConnectedX size={18} />
-                                                    </ActionIcon>
-                                                </Tooltip>
-                                            </Group>
-                                        )}
-                                    </Group>
+                                                </>
+                                            )}
+                                            <Divider orientation={"vertical"} />
+                                            <Tooltip label={"Me déconnecter"}>
+                                                <ActionIcon
+                                                    variant={"filled"}
+                                                    color={"red"}
+                                                    onClick={() => app.disconnect(true)}
+                                                >
+                                                    <IconPlugConnectedX size={18} />
+                                                </ActionIcon>
+                                            </Tooltip>
+                                        </Group>
+                                    )}
+                                </Group>
+                            </Footer>
+                        }
+                        fixed={true}
+                        navbarOffsetBreakpoint="lg"
+                        navbar={
+                            <Navbar p="md" hiddenBreakpoint="lg" hidden={!value.navbarOpened} width={{ sm: 400 }}>
+                                <Navbar.Section mt="xs">{value.navbar.header ?? navbar.header ?? ""}</Navbar.Section>
+
+                                <Navbar.Section grow component={ScrollArea} mx="-xs" px="xs">
+                                    {value.navbar.content ?? navbar.content ?? ""}
+                                </Navbar.Section>
+
+                                <Navbar.Section>
                                     <Divider variant="dotted" />
                                     <Space h="sm" />
                                     <Text size={"xs"}>Copyright (c)2022-2023 {packagejson.author.name}</Text>

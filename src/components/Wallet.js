@@ -3,7 +3,7 @@ import defaultWalletItemViewFilter from "../../defaults/walletItemViewFilter";
 import defaultWalletItemViewSorter from "../../defaults/walletItemViewSorter";
 import { defaultWalletCategories } from "../../defaults/walletCategories";
 
-import React, { useContext, useLayoutEffect, useState } from "react";
+import React, { useCallback, useContext, useLayoutEffect, useMemo, useState } from "react";
 
 import {
     ActionIcon,
@@ -24,6 +24,8 @@ import {
 import { DatePicker } from "@mantine/dates";
 import { closeAllModals } from "@mantine/modals";
 import { useForm } from "@mantine/form";
+import { useDebouncedState, useFocusTrap, useHotkeys, useListState } from "@mantine/hooks";
+import { showNotification } from "@mantine/notifications";
 
 import {
     IconArrowsTransferDown,
@@ -52,18 +54,25 @@ import FiltersBar from "./FiltersBar";
 import WalletResumeBox from "./WalletResumeBox";
 
 import { getDatePattern, getLongDayDatePattern, getLongMonthYearPattern, toSqlDate, uid } from "../../tools";
-import { useFocusTrap, useHotkeys } from "@mantine/hooks";
 import { saveOperation } from "../wrappers/wallet_api";
-import { showNotification } from "@mantine/notifications";
+import OpeList from "./OpeList";
 
-
-function Wallet({ item, filters = defaultWalletItemViewFilter, sorter = defaultWalletItemViewSorter, ...props }) {
+function Wallet({
+    walletItem,
+    walletFilters = defaultWalletItemViewFilter,
+    walletSorter = defaultWalletItemViewSorter,
+    id = uid(),
+    ...props
+}) {
     const app = useContext(AppContext);
     const [addEditModalOpened, setAddEditModalOpened] = useState(false);
     const [filtersOpened, setFiltersOpened] = useState(false);
     const [loading, setLoading] = useState(false);
     const [selected, setSelected] = useState([]);
     const [saving, setSaving] = useState(false);
+    const [opeListItems, setOpeListItems] = useDebouncedState([], 500);
+    const [filters, setFilters] = useState({ ...walletFilters });
+    const [sorter, setSorter] = useState({ ...walletSorter });
 
     const addEditForm = useForm({
         initialValues: {
@@ -78,7 +87,7 @@ function Wallet({ item, filters = defaultWalletItemViewFilter, sorter = defaultW
             thirdpartyId: "",
             fromWalletItemId: null,
             toWalletItemId: "",
-            type: "operation"
+            type: ""
         },
         validate: {
             title: (value) => (value.trim().length > 2 ? null : "Nom de l'élément incorrect!"),
@@ -134,28 +143,43 @@ function Wallet({ item, filters = defaultWalletItemViewFilter, sorter = defaultW
             app.wallet.walletItems
                 .filter((t) => t.categoryId === c.id)
                 .map((t) => {
-                    if (t.id !== item.id) {
+                    if (t.id !== walletItem.id) {
                         walletItems = [...walletItems, { value: t.id, label: t.name, group: c.text }];
                     }
                 });
         });
-
         return walletItems;
     }
+
+    const memoizedWalletItems = useMemo(() => getWalletItems(), [app.wallet?.walletItems, walletItem]);
+    const memoizedThirdparties = useMemo(() => getThirdparties(), [app.wallet?.thirdparties]);
+    const memoizedCategories = useMemo(() => getCategories(), [app.wallet?.categories]);
+    const memoizedPaytypes = useMemo(() => getPaytypes(), [app.wallet?.paytypes]);
 
     const loadList = () => {
         setLoading(true);
         console.log("load list");
+        setOpeListItems((current) => [new Date().toLocaleTimeString("fr")]);
         setLoading(false);
     };
 
     const openOpe = (type, forceNew = false) => {
         addEditForm.reset();
+
+        let data = {};
+
         if (selected.length === 0 || forceNew) {
-            addEditForm.setValues((current) => ({ ...current, type }));
+            data = { ...data, type };
+            if (type === "transfer") data = { ...data, fromWalletItemId: "" };
         } else {
-            addEditForm.setValues(selected[0]);
+            data = { ...selected[0] };
         }
+
+        addEditForm.setValues((current) => {
+            const newData = { ...current, ...data };
+            return newData;
+        });
+
         setAddEditModalOpened(true);
     };
 
@@ -167,7 +191,7 @@ function Wallet({ item, filters = defaultWalletItemViewFilter, sorter = defaultW
 
             if (addEditForm.isValid()) {
                 let data = { ...addEditForm.values };
-                if (data.id === null) data = { ...data, id: `${data.type}_${uid()}`, toWalletItemId: item.id };
+                if (data.id === null) data = { ...data, id: `${data.type}_${uid()}`, toWalletItemId: walletItem.id };
 
                 let newOpe = {
                     id: data.id,
@@ -252,7 +276,7 @@ function Wallet({ item, filters = defaultWalletItemViewFilter, sorter = defaultW
 
     useLayoutEffect(() => {
         loadList();
-    }, []);
+    }, [walletItem, filters, sorter]);
 
     useHotkeys([
         [
@@ -298,7 +322,7 @@ function Wallet({ item, filters = defaultWalletItemViewFilter, sorter = defaultW
                     setAddEditModalOpened(false);
                 }}
                 title={
-                    item.name +
+                    walletItem.name +
                     " - " +
                     (!addEditForm.values.id
                         ? addEditForm.values.type === "operation"
@@ -340,7 +364,7 @@ function Wallet({ item, filters = defaultWalletItemViewFilter, sorter = defaultW
                         <Select
                             label={"Tiers"}
                             withAsterisk={true}
-                            data={getThirdparties()}
+                            data={memoizedThirdparties}
                             icon={<IconUsers size={16} />}
                             clearable={true}
                             searchable={true}
@@ -360,7 +384,7 @@ function Wallet({ item, filters = defaultWalletItemViewFilter, sorter = defaultW
                         <Select
                             label={"Destination"}
                             withAsterisk={true}
-                            data={getWalletItems()}
+                            data={memoizedWalletItems}
                             icon={<IconBuildingBank size={16} />}
                             clearable={true}
                             searchable={true}
@@ -389,7 +413,7 @@ function Wallet({ item, filters = defaultWalletItemViewFilter, sorter = defaultW
                             <Space h={"xs"} />
                             <Select
                                 label={"Catégorie"}
-                                data={getCategories()}
+                                data={memoizedCategories}
                                 icon={<IconCategory size={16} />}
                                 clearable={true}
                                 searchable={true}
@@ -407,7 +431,7 @@ function Wallet({ item, filters = defaultWalletItemViewFilter, sorter = defaultW
                             />
                             <Select
                                 label={"Moyen de paiement"}
-                                data={getPaytypes()}
+                                data={memoizedPaytypes}
                                 icon={<IconCash size={16} />}
                                 clearable={true}
                                 searchable={true}
@@ -481,7 +505,7 @@ function Wallet({ item, filters = defaultWalletItemViewFilter, sorter = defaultW
             </Modal>
 
             <Stack>
-                <WalletResumeBox walletItem={item} />
+                <WalletResumeBox item={walletItem} />
 
                 <Tabs
                     defaultValue={"details"}
@@ -597,14 +621,23 @@ function Wallet({ item, filters = defaultWalletItemViewFilter, sorter = defaultW
                                     </ActionIcon>
                                 </Tooltip>
                             </Group>
+
                             <FiltersBar
-                                walletItemId={item.id}
+                                walletItemId={walletItem.id}
                                 filters={filters}
                                 visible={filtersOpened}
                                 onChange={() => {
                                     loadList();
                                 }}
                                 disabled={loading}
+                            />
+
+                            <OpeList
+                                items={opeListItems}
+                                selected={selected}
+                                onSelect={(ids) => {
+                                    setSelected(Array.isArray(ids) ? ids : [ids]);
+                                }}
                             />
                         </Stack>
                     </Tabs.Panel>

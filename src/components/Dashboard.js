@@ -1,9 +1,13 @@
 import packagejson from "../../package.json";
+import { defaultWalletCategories } from "../../defaults/walletCategories";
+import defaultWalletItemViewFilter from "../../defaults/walletItemViewFilter";
+import defaultWalletItemViewSorter from "../../defaults/walletItemViewSorter";
 
-import React, { cloneElement, lazy, Suspense, useContext, useEffect, useState } from "react";
+import React, { cloneElement, lazy, Suspense, useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Text, Group, Loader, Stack, NavLink, Divider, Space, Title, Tooltip } from "@mantine/core";
+import { useListState } from "@mantine/hooks";
 import {
     IconAlertTriangle,
     IconCash,
@@ -19,9 +23,7 @@ import { showNotification } from "@mantine/notifications";
 
 import { AppContext } from "./AppProvider";
 
-import { defaultWalletCategories } from "../../defaults/walletCategories";
-import defaultWalletItemViewFilter from "../../defaults/walletItemViewFilter";
-import defaultWalletItemViewSorter from "../../defaults/walletItemViewSorter";
+import DynamicLoader from "./DynamicLoader";
 import Currency from "./Currency";
 import CategoriesModal from "./CategoriesModal";
 import PaytypesModal from "./PaytypesModal";
@@ -32,9 +34,8 @@ import dayjs from "dayjs";
 
 function Dashboard() {
     const app = useContext(AppContext);
-    const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
-    const [page, setPage] = useState({ path: "Summaries", options: { item: null }, component: null });
+    const [page, setPage] = useState({ path: "Summaries", props: {} });
     const [categoriesSettingsOpened, setCategoriesSettingsOpened] = useState(false);
     const [paytypesSettingsOpened, setPaytypesSettingsOpened] = useState(false);
     const [thirdpartiesSettingsOpened, setThirdpartiesSettingsOpened] = useState(false);
@@ -65,8 +66,7 @@ function Dashboard() {
                             setPage((current) => ({
                                 ...current,
                                 path: "Summaries",
-                                options: {},
-                                component: lazy(() => import("./Summaries.js"))
+                                props: {}
                             }))
                         }
                     />
@@ -80,8 +80,7 @@ function Dashboard() {
                             setPage((current) => ({
                                 ...current,
                                 path: "Stats",
-                                options: {},
-                                component: null
+                                props: {}
                             }))
                         }
                         disabled={true}
@@ -157,23 +156,22 @@ function Dashboard() {
                                                     </Tooltip>
                                                 </Group>
                                             }
-                                            active={page.options.item?.id === item.id}
+                                            active={page.props?.walletItem?.id === item.id}
                                             fw={500}
-                                            variant={page.options.item?.id === item.id ? "filled" : "subtle"}
+                                            variant={page.props?.walletItem?.id === item.id ? "filled" : "subtle"}
                                             onClick={() =>
                                                 setPage((current) => ({
                                                     ...current,
                                                     path: "Wallet",
-                                                    options: {
-                                                        item,
-                                                        filters:
+                                                    props: {
+                                                        walletItem: item,
+                                                        walletFilters:
                                                             app.wallet.params?.filters?.walletItemView[item.id] ||
                                                             defaultWalletItemViewFilter,
-                                                        sorter:
+                                                        walletSorter:
                                                             app.wallet.params?.sorters?.walletItemView[item.id] ||
                                                             defaultWalletItemViewSorter
-                                                    },
-                                                    component: lazy(() => import("./Wallet.js"))
+                                                    }
                                                 }))
                                             }
                                         />
@@ -184,7 +182,7 @@ function Dashboard() {
                 </Stack>
             )
         });
-    }, [app.wallet, app.amounts, page]);
+    }, [app.wallet.note, app.wallet.walletItems, app.wallet.params, app.amounts, page]);
 
     useEffect(() => {
         app.purgeWalletToolbarItems();
@@ -236,6 +234,18 @@ function Dashboard() {
         };
     }, []);
 
+    const memoizedCategories = useMemo(() => app.wallet.categories, [app.wallet.categories]);
+    const memoizedPaytypes = useMemo(() => app.wallet.paytypes, [app.wallet.paytypes]);
+    const memoizedThirdparties = useMemo(() => app.wallet.thirdparties, [app.wallet.thirdparties]);
+    const memoizedProperties = useMemo(
+        () => ({
+            name: app.wallet.name,
+            note: app.wallet.note,
+            walletItems: app.wallet.walletItems
+        }),
+        [app.wallet.name, app.wallet.note, app.wallet.walletItems]
+    );
+
     return !loading ? (
         <>
             <CategoriesModal
@@ -244,7 +254,7 @@ function Dashboard() {
                     if (categoriesSettingsOpened && app.expectedSaving) app.save();
                     setCategoriesSettingsOpened(false);
                 }}
-                categories={app.wallet.categories}
+                categories={memoizedCategories}
                 onChange={(newCategories) => app.setCategories(newCategories)}
             />
             <PaytypesModal
@@ -253,7 +263,7 @@ function Dashboard() {
                     if (paytypesSettingsOpened && app.expectedSaving) app.save();
                     setPaytypesSettingsOpened(false);
                 }}
-                paytypes={app.wallet.paytypes}
+                paytypes={memoizedPaytypes}
                 onChange={(newPaytypes) => app.setPaytypes(newPaytypes)}
             />
             <ThirdpartiesModal
@@ -262,7 +272,7 @@ function Dashboard() {
                     if (thirdpartiesSettingsOpened && app.expectedSaving) app.save();
                     setThirdpartiesSettingsOpened(false);
                 }}
-                thirdparties={app.wallet.thirdparties}
+                thirdparties={memoizedThirdparties}
                 onChange={(newThirdparties) => app.setThirdparties(newThirdparties)}
             />
             <PropertiesModal
@@ -271,7 +281,7 @@ function Dashboard() {
                     if (propertiesSettingsOpened && app.expectedSaving) app.save();
                     setPropertiesSettingsOpened(false);
                 }}
-                properties={{ name: app.wallet.name, note: app.wallet.note, walletItems: app.wallet.walletItems }}
+                properties={memoizedProperties}
                 onChange={(newProperties) => app.setProperties(newProperties)}
             />
             <Suspense
@@ -284,7 +294,7 @@ function Dashboard() {
                     </Group>
                 }
             >
-                {page.component && cloneElement(<page.component />, page.options)}
+                <DynamicLoader component={page.path} {...page.props} />
             </Suspense>
         </>
     ) : (

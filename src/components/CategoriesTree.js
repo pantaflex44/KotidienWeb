@@ -34,24 +34,28 @@ const Category = memo(
         const [lastEdit, setLastEdit] = useState(category.name);
         const [item, setItem] = useState(category);
 
-        const childs = (Array.isArray(items) ? items : [])
-            .filter((c) => c.parentId === category.id)
-            .sort((a, b) => {
-                if (a.name < b.name) return -1;
-                if (a.name > b.name) return 1;
-                return 0;
-            })
-            .map((c) => (
-                <Category
-                    key={c.id}
-                    category={c}
-                    items={items}
-                    color={color}
-                    onChange={onChange}
-                    onDelete={onDelete}
-                    onAdd={onAdd}
-                />
-            ));
+        const childs = useMemo(
+            () =>
+                (Array.isArray(items) ? items : [])
+                    .filter((c) => c.parentId === category.id)
+                    .sort((a, b) => {
+                        if (a.name < b.name) return -1;
+                        if (a.name > b.name) return 1;
+                        return 0;
+                    })
+                    .map((c) => (
+                        <Category
+                            key={c.id}
+                            category={c}
+                            items={items}
+                            color={color}
+                            onChange={onChange}
+                            onDelete={onDelete}
+                            onAdd={onAdd}
+                        />
+                    )),
+            [items]
+        );
 
         const cancelEdit = () => {
             setItem((old) => ({ ...old, name: lastEdit }));

@@ -354,12 +354,17 @@ function Register() {
                     <Divider variant="dotted" mt={"sm"} />
 
                     <Container
-                        size={"md"}
-                        mt={{ base: "xs", sm: "lg" }}
-                        ml={{ base: "auto", sm: "lg" }}
-                        mr={{ base: "auto", sm: "lg" }}
-                        pl={0}
-                        pr={0}
+                        size={"lg"}
+                        mt={{ base: 0, sm: "xs" }}
+                        ml={{ base: "auto", sm: "xs" }}
+                        mr={{ base: "auto", sm: "xs" }}
+                        pl={"lg"}
+                        pr={"lg"}
+                        pt={"lg"}
+                        pb={"lg"}
+                        sx={(theme) => ({
+                            minHeight: "100%"
+                        })}
                     >
                         <Title order={2} mb="xs" color={app.theme.colors.brand[5]}>
                             Ouvrir un nouveau portefeuille
@@ -370,7 +375,16 @@ function Register() {
                         </Text>
                         <Space h="lg" />
 
-                        <Paper withBorder={true} p={"md"}>
+                        <Paper
+                            withBorder={true}
+                            p={"md"}
+                            sx={(theme) => ({
+                                backgroundColor:
+                                    app.theme.colorScheme === "dark"
+                                        ? app.theme.colors.dark[8]
+                                        : app.theme.colors.gray[0]
+                            })}
+                        >
                             <Stepper active={step} breakpoint="sm" mt="lg">
                                 <Stepper.Step label="Sécurité" description="Identité.">
                                     <Grid grow={true} gutter={"xl"}>

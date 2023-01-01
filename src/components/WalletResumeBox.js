@@ -12,24 +12,19 @@ import Currency from "./Currency";
 
 import { getLongDayDatePattern, getLongMonthYearPattern } from "../../tools";
 
-function WalletResumeBox({ walletItem }) {
+function WalletResumeBox({ item }) {
     const app = useContext(AppContext);
 
     const [defaultPanel, setDefaultPanel] = useState("amountResume");
-    const [item, setItem] = useState(walletItem);
     const [currentDate, setCurrentDate] = useState(dayjs());
 
     useLayoutEffect(() => {
-        setItem(walletItem);
-    }, [walletItem]);
+        setDefaultPanel(localStorage.getItem(`${item.id}_resumebox_panel`) || "amountResume");
+    }, [item]);
 
     useLayoutEffect(() => {
-        setDefaultPanel(localStorage.getItem(`${walletItem.id}_resumebox_panel`) || "amountResume");
-    }, []);
-
-    useLayoutEffect(() => {
-        localStorage.setItem(`${walletItem.id}_resumebox_panel`, defaultPanel);
-    }, [walletItem, defaultPanel]);
+        localStorage.setItem(`${item.id}_resumebox_panel`, defaultPanel);
+    }, [item, defaultPanel]);
 
     useEffect(() => {
         const timeInterval = setInterval(() => {

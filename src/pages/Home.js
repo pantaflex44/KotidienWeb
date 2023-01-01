@@ -38,7 +38,7 @@ const Home = () => {
                 )
             });
         }
-    }, [app]);
+    }, [app.wallet]);
 
     return (
         <Metas
@@ -46,16 +46,21 @@ const Home = () => {
                 (app.expectedSaving ? "[ " : "") + (app.wallet?.name || "Bienvenue") + (app.expectedSaving ? " ]" : "")
             }
         >
-            {!app.wallet ? (
-                <Container
-                    size={"md"}
-                    mt={{ base: "xs", sm: "lg" }}
-                    ml={{ base: "auto", sm: "lg" }}
-                    mr={{ base: "auto", sm: "lg" }}
-                    pl={0}
-                    pr={0}
-                >
-                    <Grid grow={true} gutter={"xl"}>
+            <Container
+                size={!app.wallet ? "md" : "lg"}
+                mt={{ base: 0, sm: "xs" }}
+                ml={{ base: "auto", sm: "xs" }}
+                mr={{ base: "auto", sm: "xs" }}
+                pl={0}
+                pr={0}
+                pt={0}
+                pb={0}
+                sx={(theme) => ({
+                    minHeight: "100%"
+                })}
+            >
+                {!app.wallet ? (
+                    <Grid grow={true} gutter={"lg"}>
                         <Grid.Col sm={1} lg={2} order={2} orderSm={1}>
                             <PreRegisterForm />
                         </Grid.Col>
@@ -63,10 +68,10 @@ const Home = () => {
                             <LoginForm />
                         </Grid.Col>
                     </Grid>
-                </Container>
-            ) : (
-                <Dashboard />
-            )}
+                ) : (
+                    <Dashboard />
+                )}
+            </Container>
         </Metas>
     );
 };

@@ -45,7 +45,13 @@ function PreRegisterForm({ defaultEmail = null }) {
     };
 
     return (
-        <Paper withBorder={true} p={"md"}>
+        <Paper
+            withBorder={true}
+            p={"md"}
+            sx={(theme) => ({
+                backgroundColor: app.theme.colorScheme === "dark" ? app.theme.colors.dark[8] : app.theme.colors.gray[0]
+            })}
+        >
             <Group spacing="xs" mb={"xs"}>
                 <IconUserPlus size={22} />
                 <Title order={3}>Je n'ai pas de compte</Title>
