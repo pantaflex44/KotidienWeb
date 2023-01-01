@@ -53,12 +53,11 @@ import WalletResumeBox from "./WalletResumeBox";
 import { getDatePattern, getLongDayDatePattern, getLongMonthYearPattern, toSqlDate, uid } from "../../tools";
 import { saveOperation } from "../wrappers/wallet_api";
 
-function OpeList({ items, selected = [], onSelect = null }) {
-    const opeItems = useMemo(() => items, [items]);
-
+function OpeList({ items = [], selected = [], disabled = false, onSelect = null }) {
     return (
         <Stack>
-            <Text>{JSON.stringify(opeItems)}</Text>
+            <Text>{JSON.stringify(items)}</Text>
+            <Text>{JSON.stringify(new Date().toLocaleTimeString())}</Text>
         </Stack>
     );
 }

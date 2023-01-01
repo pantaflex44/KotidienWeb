@@ -5,7 +5,7 @@ import { currencyFormatter } from "../../tools";
 
 function Currency({ amount, currency = "EUR", ...props }) {
     return (
-        <Text {...props} color={amount < 0 ? "red" : "inherit"}>
+        <Text {...props} color={amount < 0 ? "red.8" : "inherit"}>
             {currencyFormatter(amount, currency)}
         </Text>
     );

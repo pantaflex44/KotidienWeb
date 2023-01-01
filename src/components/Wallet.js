@@ -52,10 +52,10 @@ import {
 import { AppContext } from "./AppProvider";
 import FiltersBar from "./FiltersBar";
 import WalletResumeBox from "./WalletResumeBox";
+import OpeList from "./OpeList";
 
 import { getDatePattern, getLongDayDatePattern, getLongMonthYearPattern, toSqlDate, uid } from "../../tools";
-import { saveOperation } from "../wrappers/wallet_api";
-import OpeList from "./OpeList";
+import { saveOperation, getOperations } from "../wrappers/wallet_api";
 
 function Wallet({
     walletItem,
@@ -70,9 +70,9 @@ function Wallet({
     const [loading, setLoading] = useState(false);
     const [selected, setSelected] = useState([]);
     const [saving, setSaving] = useState(false);
-    const [opeListItems, setOpeListItems] = useDebouncedState([], 500);
     const [filters, setFilters] = useState({ ...walletFilters });
     const [sorter, setSorter] = useState({ ...walletSorter });
+    const [opeListItems, setOpeListItems] = useState([]);
 
     const addEditForm = useForm({
         initialValues: {
@@ -156,13 +156,6 @@ function Wallet({
     const memoizedCategories = useMemo(() => getCategories(), [app.wallet?.categories]);
     const memoizedPaytypes = useMemo(() => getPaytypes(), [app.wallet?.paytypes]);
 
-    const loadList = () => {
-        setLoading(true);
-        console.log("load list");
-        setOpeListItems((current) => [new Date().toLocaleTimeString("fr")]);
-        setLoading(false);
-    };
-
     const openOpe = (type, forceNew = false) => {
         addEditForm.reset();
 
@@ -233,24 +226,23 @@ function Wallet({
                                 icon: <IconX size={18} />,
                                 loading: false
                             });
+                        } else {
+                            showNotification({
+                                id: "save-operation-notification",
+                                disallowClose: true,
+                                autoClose: 5000,
+                                title: "Opération",
+                                message: "Opération enregistrée avec succès.",
+                                color: "green",
+                                icon: <IconThumbUp size={18} />,
+                                loading: false
+                            });
 
-                            return;
+                            app.refreshAmounts();
+                            loadList();
+
+                            if (closeAfterSave) setAddEditModalOpened(false);
                         }
-
-                        showNotification({
-                            id: "save-operation-notification",
-                            disallowClose: true,
-                            autoClose: 5000,
-                            title: "Opération",
-                            message: "Opération enregistrée avec succès.",
-                            color: "green",
-                            icon: <IconThumbUp size={18} />,
-                            loading: false
-                        });
-
-                        app.refreshAmounts();
-
-                        if (closeAfterSave) setAddEditModalOpened(false);
                     })
                     .finally(() => {
                         setSaving(false);
@@ -274,9 +266,70 @@ function Wallet({
         console.log("delete");
     };
 
-    useLayoutEffect(() => {
-        loadList();
-    }, [walletItem, filters, sorter]);
+    const compareOperations = (newItems, oldItems) => {
+        try {
+            const added = newItems.filter(({ id: id1 }) => !oldItems.some(({ id: id2 }) => id2 === id1));
+            const removed = oldItems.filter(({ id: id1 }) => !newItems.some(({ id: id2 }) => id2 === id1));
+            const updated = newItems.filter(({ id: id1, ...rest1 }) =>
+                oldItems.some(({ id: id2, ...rest2 }) => id2 === id1 && JSON.stringify(rest1) !== JSON.stringify(rest2))
+            );
+
+            return { added, removed, updated };
+        } catch (err) {
+            console.error(err);
+            return null;
+        }
+    };
+
+    const loadList = useCallback(() => {
+        setLoading(true);
+
+        getOperations(app.wallet.email, walletItem.id, filters, sorter)
+            .then((response) => {
+                const { operations, errorCode, errorMessage } = response;
+
+                if (errorCode !== 0) {
+                    showNotification({
+                        id: "get-operation-error-notification",
+                        disallowClose: true,
+                        autoClose: 5000,
+                        title: "Impossible de lister les opérations!",
+                        message: errorMessage,
+                        color: "red",
+                        icon: <IconX size={18} />,
+                        loading: false
+                    });
+                } else {
+                    setOpeListItems((current) => {
+                        const results = compareOperations(operations, current);
+                        if (!results) return operations;
+
+                        const { added, removed, updated } = results;
+                        let newOperations = [...current, ...added];
+
+                        const removedIds = removed.map((o) => o.id);
+                        newOperations = newOperations.filter((o) => !removedIds.includes(o.id));
+
+                        const updatedIds = updated.map((o) => o.id);
+                        newOperations = newOperations.map((o) => {
+                            if (!updatedIds.includes(o.id)) return o;
+
+                            const uope = updated.filter((u) => u.id === o.id);
+                            if (uope.length === 0) return o;
+
+                            return { ...o, ...uope[0] };
+                        });
+
+                        return newOperations;
+                    });
+                }
+            })
+            .finally(() => {
+                setLoading(false);
+            });
+    }, [walletItem.id, filters]);
+
+    useLayoutEffect(() => loadList(), [walletItem.id, filters]);
 
     useHotkeys([
         [
@@ -301,12 +354,6 @@ function Wallet({
             "mod+alt+F",
             () => {
                 if (!loading) setFiltersOpened((old) => !old);
-            }
-        ],
-        [
-            "mod+alt+F5",
-            () => {
-                if (!loading) loadList();
             }
         ]
     ]);
@@ -505,7 +552,12 @@ function Wallet({
             </Modal>
 
             <Stack>
-                <WalletResumeBox item={walletItem} />
+                {useMemo(
+                    () => (
+                        <WalletResumeBox item={walletItem} />
+                    ),
+                    [walletItem]
+                )}
 
                 <Tabs
                     defaultValue={"details"}
@@ -613,7 +665,7 @@ function Wallet({
                                     <ActionIcon
                                         size="md"
                                         variant={filtersOpened ? "filled" : "subtle"}
-                                        color={filtersOpened ? "yellow" : "dark"}
+                                        color={filtersOpened ? "yellow.5" : "dark"}
                                         onClick={() => setFiltersOpened((old) => !old)}
                                         disabled={loading}
                                     >
@@ -622,23 +674,32 @@ function Wallet({
                                 </Tooltip>
                             </Group>
 
-                            <FiltersBar
-                                walletItemId={walletItem.id}
-                                filters={filters}
-                                visible={filtersOpened}
-                                onChange={() => {
-                                    loadList();
-                                }}
-                                disabled={loading}
-                            />
+                            {useMemo(
+                                () => (
+                                    <FiltersBar
+                                        walletItemId={walletItem.id}
+                                        filters={filters}
+                                        visible={filtersOpened}
+                                        disabled={loading}
+                                        onChange={() => loadList()}
+                                    />
+                                ),
+                                [walletItem.id, filters, filtersOpened, loading]
+                            )}
 
-                            <OpeList
-                                items={opeListItems}
-                                selected={selected}
-                                onSelect={(ids) => {
-                                    setSelected(Array.isArray(ids) ? ids : [ids]);
-                                }}
-                            />
+                            {useMemo(
+                                () => (
+                                    <OpeList
+                                        items={opeListItems}
+                                        selected={selected}
+                                        onSelect={(ids) => {
+                                            setSelected(Array.isArray(ids) ? ids : [ids]);
+                                        }}
+                                        disabled={loading}
+                                    />
+                                ),
+                                [opeListItems, loading]
+                            )}
                         </Stack>
                     </Tabs.Panel>
                     <Tabs.Panel value="calendar" pt={"md"} sx={(theme) => ({ flex: "1 1 auto" })}></Tabs.Panel>

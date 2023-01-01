@@ -76,8 +76,12 @@ function FiltersBar({
         setView({
             filters: {
                 ...filters,
-                startDate: typeof filter.startDate === "string" ? new Date(filters.startDate) : filter.startDate,
-                endDate: typeof filter.endDate === "string" ? new Date(filters.endDate) : filter.endDate
+                startDate:
+                    (typeof filter.startDate === "string" ? new Date(filters.startDate) : filter.startDate) ||
+                    getFirstDayOfCurrentMonth(),
+                endDate:
+                    (typeof filter.endDate === "string" ? new Date(filters.endDate) : filter.endDate) ||
+                    getLastDayOfCurrentMonth()
             },
             sorter: { ...sorter }
         });
@@ -107,7 +111,12 @@ function FiltersBar({
     };
 
     const resetFilters = () => {
-        updateFilters({ ...defaultWalletItemViewFilter });
+        const [startDate, endDate] = intervalToDates(defaultWalletItemViewFilter.interval);
+        updateFilters({
+            ...defaultWalletItemViewFilter,
+            startDate: startDate,
+            endDate: endDate
+        });
     };
 
     return (
@@ -126,11 +135,17 @@ function FiltersBar({
                         icon={<IconCalendarMinus size={16} />}
                         value={view.filters.interval}
                         onChange={(v) => {
-                            const [startDate, endDate] = intervalToDates(v);
+                            const [startDate, endDate] =
+                                v !== ""
+                                    ? intervalToDates(v)
+                                    : [
+                                          view.filters.startDate || getFirstDayOfCurrentMonth(),
+                                          view.filters.endDate || getLastDayOfCurrentMonth()
+                                      ];
                             updateFilters({
                                 interval: v,
-                                startDate: v === "" ? view.filters.startDate : startDate,
-                                endDate: v === "" ? view.filters.endDate : endDate
+                                startDate: startDate,
+                                endDate: endDate
                             });
                         }}
                         disabled={disableState}

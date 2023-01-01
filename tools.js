@@ -352,7 +352,7 @@ const getFirstDayOfCurrentMonth = () => {
     return getFirstDayOfMonth(d.getFullYear(), d.getMonth());
 };
 
-const getLastDayOfMonth = (year, month) => new Date(year, month + 1, 1);
+const getLastDayOfMonth = (year, month) => new Date(year, month + 1, 0);
 
 const getLastDayOfCurrentMonth = () => {
     const d = new Date();
@@ -443,8 +443,8 @@ const intervalToDates = (interval) => {
         if (i === "m") {
             if (n < 0) {
                 const s = subMonth(now.getFullYear(), now.getMonth(), -n);
-                dates[0] = new Date(s[0], s[1], now.getDate());
-                dates[1] = now;
+                dates[0] = getFirstDayOfMonth(s[0], s[1] + 1);
+                dates[1] = getLastDayOfMonth(now.getFullYear(), now.getMonth() - 1);
             }
             if (n > 0) {
                 if (n === 1) {
@@ -453,43 +453,43 @@ const intervalToDates = (interval) => {
                 }
                 if (n === 3) {
                     const s =
-                        now.getMonth() >= 1 && now.getMonth() <= 3
-                            ? 1
-                            : now.getMonth() >= 4 && now.getMonth() <= 6
-                            ? 4
-                            : now.getMonth() >= 7 && now.getMonth() <= 9
-                            ? 7
-                            : now.getMonth() >= 10 && now.getMonth() <= 12
-                            ? 10
-                            : 1;
-                    const e =
-                        now.getMonth() >= 1 && now.getMonth() <= 3
+                        now.getMonth() >= 0 && now.getMonth() <= 2
+                            ? 0
+                            : now.getMonth() >= 3 && now.getMonth() <= 5
                             ? 3
-                            : now.getMonth() >= 4 && now.getMonth() <= 6
+                            : now.getMonth() >= 6 && now.getMonth() <= 8
                             ? 6
-                            : now.getMonth() >= 7 && now.getMonth() <= 9
+                            : now.getMonth() >= 9 && now.getMonth() <= 11
                             ? 9
-                            : now.getMonth() >= 10 && now.getMonth() <= 12
-                            ? 12
-                            : 12;
-                    dates[0] = getFirstDayOfMonth(now.getFullYear(), s - 1);
-                    dates[1] = getLastDayOfMonth(now.getFullYear(), e - 1);
+                            : 0;
+                    const e =
+                        now.getMonth() >= 0 && now.getMonth() <= 2
+                            ? 2
+                            : now.getMonth() >= 3 && now.getMonth() <= 5
+                            ? 5
+                            : now.getMonth() >= 6 && now.getMonth() <= 8
+                            ? 8
+                            : now.getMonth() >= 9 && now.getMonth() <= 11
+                            ? 11
+                            : 11;
+                    dates[0] = getFirstDayOfMonth(now.getFullYear(), s);
+                    dates[1] = getLastDayOfMonth(now.getFullYear(), e);
                 }
                 if (n === 6) {
                     const s =
-                        now.getMonth() >= 1 && now.getMonth() <= 6
-                            ? 1
-                            : now.getMonth() >= 7 && now.getMonth() <= 12
-                            ? 7
-                            : 1;
-                    const e =
-                        now.getMonth() >= 1 && now.getMonth() <= 6
+                        now.getMonth() >= 0 && now.getMonth() <= 5
+                            ? 0
+                            : now.getMonth() >= 6 && now.getMonth() <= 11
                             ? 6
-                            : now.getMonth() >= 7 && now.getMonth() <= 12
-                            ? 12
-                            : 12;
-                    dates[0] = getFirstDayOfMonth(now.getFullYear(), s - 1);
-                    dates[1] = getLastDayOfMonth(now.getFullYear(), e - 1);
+                            : 0;
+                    const e =
+                        now.getMonth() >= 0 && now.getMonth() <= 5
+                            ? 5
+                            : now.getMonth() >= 6 && now.getMonth() <= 11
+                            ? 11
+                            : 11;
+                    dates[0] = getFirstDayOfMonth(now.getFullYear(), s);
+                    dates[1] = getLastDayOfMonth(now.getFullYear(), e);
                 }
                 if (n === 12) {
                     dates[0] = getFirstDayOfMonth(now.getFullYear(), 0);
@@ -504,6 +504,7 @@ const intervalToDates = (interval) => {
     }
     return dates;
 };
+
 
 module.exports = {
     slugify,

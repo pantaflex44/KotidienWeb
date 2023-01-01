@@ -22,5 +22,9 @@
     {
         "path": "/api/wallet/getamountat",
         "controller": "./controllers/wallet/getamountat.js"
+    },
+    {
+        "path": "/api/wallet/getoperations",
+        "controller": "./controllers/wallet/getoperations.js"
     }
 ]

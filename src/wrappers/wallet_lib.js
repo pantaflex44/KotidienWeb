@@ -2,7 +2,7 @@ const packagejson = require("../../package.json");
 
 const path = require("path");
 const fs = require("fs");
-const { toB64, writeJson, secureKey, readJson } = require("../../tools");
+const { toB64, writeJson, secureKey, readJson, uid } = require("../../tools");
 const Db = require("../../db");
 
 const getWallet = (email) => path.resolve(__dirname, "..", "..", "data", toB64(email));
@@ -203,7 +203,33 @@ const getAmountAt = (data) => {
 
         return amount;
     } catch (err) {
-        console.error("error", err);
+        console.error(err);
+        return 0.0;
+    }
+};
+
+const getOperations = (data) => {
+    try {
+        const { email, walletItemId, filters, sorter } = data;
+
+        const db = new Db(getWalletFile(email));
+        const amount = db
+            .open()
+            .then((conn) => {
+                return [{ id: uid(), time: new Date().toLocaleTimeString() }];
+            })
+            .catch((err) => {
+                db.close();
+                console.log("sql", err);
+                return 0.0;
+            })
+            .finally(() => {
+                db.close();
+            });
+
+        return amount;
+    } catch (err) {
+        console.error(err);
         return 0.0;
     }
 };
@@ -218,5 +244,6 @@ module.exports = {
     openWalletMetas,
     saveWalletMetas,
     saveOperation,
-    getAmountAt
+    getAmountAt,
+    getOperations
 };

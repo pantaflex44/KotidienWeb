@@ -65,11 +65,11 @@ function WalletResumeBox({ item }) {
                                 color={
                                     item.initialAmount + (app.amounts.today[item.id] || 0.0) < -item.overdraft ||
                                     item.initialAmount + (app.amounts.endMonth[item.id] || 0.0) < -item.overdraft
-                                        ? "red"
+                                        ? "red.8"
                                         : null
                                 }
                             >
-                                Soldes en cours
+                                Soldes prévisionnels
                             </Text>
                         </Accordion.Control>
                         <Accordion.Panel>
@@ -119,7 +119,7 @@ function WalletResumeBox({ item }) {
                                                     : null
                                             }
                                             labelPosition={"center"}
-                                            labelProps={{ color: "red", style: { textAlign: "center" } }}
+                                            labelProps={{ color: "red.8", style: { textAlign: "center" } }}
                                         />
                                     </Grid.Col>
                                 </MediaQuery>

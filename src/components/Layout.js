@@ -51,7 +51,7 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                             >
                                                 <ActionIcon
                                                     variant={"filled"}
-                                                    color={value.colorScheme === "light" ? "yellow" : "gray"}
+                                                    color={value.colorScheme === "light" ? "yellow.5" : "gray"}
                                                     onClick={() => value.toggleColorScheme()}
                                                 >
                                                     {value.colorScheme === "light" ? (
@@ -112,7 +112,7 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                             <Tooltip label={"Me déconnecter"}>
                                                 <ActionIcon
                                                     variant={"filled"}
-                                                    color={"red"}
+                                                    color={"red.8"}
                                                     onClick={() => app.disconnect(true)}
                                                 >
                                                     <IconPlugConnectedX size={18} />
@@ -161,7 +161,15 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                             </Navbar>
                         }
                         header={
-                            <Header px="lg" py="sm" height={70}>
+                            <Header
+                                px="lg"
+                                py="sm"
+                                height={70}
+                                sx={(theme) => ({
+                                    backgroundColor:
+                                        theme.colorScheme === "dark" ? theme.colors.dark[8] : theme.colors.gray[0]
+                                })}
+                            >
                                 <Group position="apart">
                                     <Title
                                         weight={900}
