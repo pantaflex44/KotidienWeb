@@ -219,12 +219,14 @@ function Dashboard() {
             setCurrentDate((old) => {
                 const cur = dayjs();
                 if (!old || cur.format("YYYY-MM-DD") !== old.format("YYYY-MM-DD")) {
+                    app.refreshCurrentDate();
                     app.refreshAmounts();
                     return cur;
                 }
                 return old;
             });
         }, 1000);
+        app.refreshCurrentDate();
         app.refreshAmounts();
 
         setLoading(false);

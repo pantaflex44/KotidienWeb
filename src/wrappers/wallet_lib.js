@@ -54,7 +54,7 @@ const createWallet = ({ email, password, name, note, walletItems, categories, pa
                     sorters: {
                         walletItemView: {}
                     },
-                    views: { showResumeBox: true }
+                    views: { showResumeBox: true, extendOperations: true }
                 },
                 walletKey: secureKey.generate(32),
                 version: packagejson.version
@@ -210,13 +210,35 @@ const getAmountAt = (data) => {
 
 const getOperations = (data) => {
     try {
-        const { email, walletItemId, filters, sorter } = data;
+        const { email, walletItemId, filters } = data;
 
         const db = new Db(getWalletFile(email));
         const amount = db
             .open()
             .then((conn) => {
-                return [{ id: uid(), time: new Date().toLocaleTimeString() }];
+                let opeResult = [];
+                conn.each(
+                    "SELECT * FROM Operations WHERE toWalletItemId = :walletId",
+                    {
+                        ":walletId": walletItemId
+                    },
+                    (row) => {
+                        if (row) opeResult.push(row);
+                    }
+                );
+
+                let trfResult = [];
+                conn.each(
+                    "SELECT * FROM Operations WHERE fromWalletItemId = :walletId",
+                    {
+                        ":walletId": walletItemId
+                    },
+                    (row) => {
+                        if (row) trfResult.push({ ...row, amount: row.amount < 0 ? -row.amount : row.amount });
+                    }
+                );
+
+                return [...opeResult, ...trfResult];
             })
             .catch((err) => {
                 db.close();

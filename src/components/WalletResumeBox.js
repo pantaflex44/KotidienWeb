@@ -16,7 +16,6 @@ function WalletResumeBox({ item }) {
     const app = useContext(AppContext);
 
     const [defaultPanel, setDefaultPanel] = useState("amountResume");
-    const [currentDate, setCurrentDate] = useState(dayjs());
 
     useLayoutEffect(() => {
         setDefaultPanel(localStorage.getItem(`${item.id}_resumebox_panel`) || "amountResume");
@@ -25,20 +24,6 @@ function WalletResumeBox({ item }) {
     useLayoutEffect(() => {
         localStorage.setItem(`${item.id}_resumebox_panel`, defaultPanel);
     }, [item, defaultPanel]);
-
-    useEffect(() => {
-        const timeInterval = setInterval(() => {
-            setCurrentDate((old) => {
-                const cur = dayjs();
-                if (cur.format("YYYY-MM-DD") !== currentDate.format("YYYY-MM-DD")) return cur;
-                return old;
-            });
-        }, 5000);
-
-        return () => {
-            if (timeInterval) clearInterval(timeInterval);
-        };
-    }, []);
 
     return (
         (app.wallet.params.views === undefined || app.wallet.params.views?.showResumeBox === true) && (
@@ -54,7 +39,7 @@ function WalletResumeBox({ item }) {
                             icon={
                                 item.initialAmount + (app.amounts.today[item.id] || 0.0) < -item.overdraft ||
                                 item.initialAmount + (app.amounts.endMonth[item.id] || 0.0) < -item.overdraft ? (
-                                    <IconAlertTriangle color={"red"} />
+                                    <IconAlertTriangle color={"red"} size={18} />
                                 ) : null
                             }
                             p={"xs"}
@@ -77,7 +62,7 @@ function WalletResumeBox({ item }) {
                                 <Grid.Col sm={1} xs={5}>
                                     <Divider
                                         my="xs"
-                                        label={currentDate
+                                        label={dayjs()
                                             .locale(packagejson.i18n.defaultLocale)
                                             .format(getLongDayDatePattern(packagejson.i18n.defaultLocale, true))}
                                         labelPosition="center"
@@ -150,7 +135,7 @@ function WalletResumeBox({ item }) {
                                 <Grid.Col sm={1} xs={5}>
                                     <Divider
                                         my="xs"
-                                        label={currentDate
+                                        label={dayjs()
                                             .locale(packagejson.i18n.defaultLocale)
                                             .format(getLongMonthYearPattern(packagejson.i18n.defaultLocale, true))}
                                         labelPosition="center"

@@ -17,14 +17,13 @@ import {
     Space,
     Stack,
     Tabs,
-    Text,
     TextInput,
     Tooltip
 } from "@mantine/core";
 import { DatePicker } from "@mantine/dates";
 import { closeAllModals } from "@mantine/modals";
 import { useForm } from "@mantine/form";
-import { useDebouncedState, useFocusTrap, useHotkeys, useListState } from "@mantine/hooks";
+import { useFocusTrap, useHotkeys } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 
 import {
@@ -34,7 +33,6 @@ import {
     IconCalendarEvent,
     IconCash,
     IconCategory,
-    IconCheck,
     IconCurrencyEuro,
     IconEdit,
     IconFilter,
@@ -42,6 +40,7 @@ import {
     IconPlus,
     IconQuote,
     IconRefresh,
+    IconSquareCheck,
     IconTag,
     IconThumbUp,
     IconTrash,
@@ -54,7 +53,7 @@ import FiltersBar from "./FiltersBar";
 import WalletResumeBox from "./WalletResumeBox";
 import OpeList from "./OpeList";
 
-import { getDatePattern, getLongDayDatePattern, getLongMonthYearPattern, toSqlDate, uid } from "../../tools";
+import { getDatePattern, toSqlDate, uid } from "../../tools";
 import { saveOperation, getOperations } from "../wrappers/wallet_api";
 
 function Wallet({
@@ -239,7 +238,7 @@ function Wallet({
                             });
 
                             app.refreshAmounts();
-                            loadList();
+                            loadOpeList();
 
                             if (closeAfterSave) setAddEditModalOpened(false);
                         }
@@ -261,12 +260,19 @@ function Wallet({
         }
     };
 
-    const deleteOpe = () => {
-        if (selected.length === 0) return;
-        console.log("delete");
+    const deleteOpe = (items) => {
+        if (items.length === 0) return;
+        console.log(items);
+        console.error("DELETE OPERATIONS IN DATABASE");
     };
 
-    const compareOperations = (newItems, oldItems) => {
+    const updateOpe = (items) => {
+        if (items.length === 0) return;
+        console.log(items);
+        console.error("SAVE UPDATED OPERATIONS IN DATABASE");
+    };
+
+    const compareOpeListItems = (newItems, oldItems) => {
         try {
             const added = newItems.filter(({ id: id1 }) => !oldItems.some(({ id: id2 }) => id2 === id1));
             const removed = oldItems.filter(({ id: id1 }) => !newItems.some(({ id: id2 }) => id2 === id1));
@@ -281,10 +287,11 @@ function Wallet({
         }
     };
 
-    const loadList = useCallback(() => {
+    const loadOpeList = useCallback(() => {
         setLoading(true);
+        setSelected([]);
 
-        getOperations(app.wallet.email, walletItem.id, filters, sorter)
+        getOperations(app.wallet.email, walletItem.id, filters)
             .then((response) => {
                 const { operations, errorCode, errorMessage } = response;
 
@@ -301,7 +308,7 @@ function Wallet({
                     });
                 } else {
                     setOpeListItems((current) => {
-                        const results = compareOperations(operations, current);
+                        const results = compareOpeListItems(operations, current);
                         if (!results) return operations;
 
                         const { added, removed, updated } = results;
@@ -327,9 +334,9 @@ function Wallet({
             .finally(() => {
                 setLoading(false);
             });
-    }, [walletItem.id, filters]);
+    }, [walletItem.id, filters, app.currentDate]);
 
-    useLayoutEffect(() => loadList(), [walletItem.id, filters]);
+    useLayoutEffect(() => loadOpeList(), [walletItem.id, filters, app.currentDate]);
 
     useHotkeys([
         [
@@ -556,7 +563,7 @@ function Wallet({
                     () => (
                         <WalletResumeBox item={walletItem} />
                     ),
-                    [walletItem]
+                    [walletItem, app.currentDate]
                 )}
 
                 <Tabs
@@ -626,9 +633,12 @@ function Wallet({
                                     <ActionIcon
                                         size="md"
                                         variant={"subtle"}
-                                        color={"red"}
+                                        color={"red.9"}
                                         disabled={loading || selected.length < 1}
-                                        onClick={() => deleteOpe()}
+                                        onClick={() => {
+                                            const items = opeListItems.filter((item) => selected.includes(item.id));
+                                            deleteOpe(items);
+                                        }}
                                     >
                                         <IconTrash size={16} stroke={1.5} />
                                     </ActionIcon>
@@ -640,8 +650,20 @@ function Wallet({
                                         variant={"subtle"}
                                         color={"dark"}
                                         disabled={loading || selected.length < 1}
+                                        onClick={() => {
+                                            setOpeListItems((current) => {
+                                                const newItems = current.map((item) => {
+                                                    if (selected.includes(item.id)) {
+                                                        return { ...item, state: item.state === 1 ? 0 : 1 };
+                                                    }
+                                                    return item;
+                                                });
+                                                updateOpe(newItems);
+                                                return newItems;
+                                            });
+                                        }}
                                     >
-                                        <IconCheck size={16} stroke={1.5} />
+                                        <IconSquareCheck size={16} stroke={1.5} />
                                     </ActionIcon>
                                 </Tooltip>
                                 <Divider orientation={"vertical"} />
@@ -650,7 +672,7 @@ function Wallet({
                                         size="md"
                                         variant={"subtle"}
                                         color={"dark"}
-                                        onClick={() => loadList()}
+                                        onClick={() => loadOpeList()}
                                         loading={loading}
                                         disabled={loading}
                                     >
@@ -658,7 +680,7 @@ function Wallet({
                                     </ActionIcon>
                                 </Tooltip>
                                 <Tooltip
-                                    label={`${filtersOpened ? "Désactiver" : "Activer"} les filtres (Ctrl+Alt+F)`}
+                                    label={`${filtersOpened ? "Cacher" : "Afficher"} les filtres (Ctrl+Alt+F)`}
                                     withinPortal={true}
                                     withArrow={true}
                                 >
@@ -681,7 +703,7 @@ function Wallet({
                                         filters={filters}
                                         visible={filtersOpened}
                                         disabled={loading}
-                                        onChange={() => loadList()}
+                                        onChange={() => loadOpeList()}
                                     />
                                 ),
                                 [walletItem.id, filters, filtersOpened, loading]
@@ -690,15 +712,29 @@ function Wallet({
                             {useMemo(
                                 () => (
                                     <OpeList
+                                        walletItem={walletItem}
+                                        currency={walletItem.currency}
                                         items={opeListItems}
                                         selected={selected}
                                         onSelect={(ids) => {
-                                            setSelected(Array.isArray(ids) ? ids : [ids]);
+                                            setSelected((current) => [
+                                                ...current,
+                                                ...ids.filter((id) => !current.includes(id))
+                                            ]);
+                                        }}
+                                        onUnselect={(ids) => {
+                                            setSelected((current) => current.filter((id) => !ids.includes(id)));
                                         }}
                                         disabled={loading}
+                                        onChange={(newItems) => {
+                                            setOpeListItems((current) => {
+                                                updateOpe(newItems);
+                                                return newItems;
+                                            });
+                                        }}
                                     />
                                 ),
-                                [opeListItems, loading]
+                                [opeListItems, loading, app.currentDate, walletItem, selected]
                             )}
                         </Stack>
                     </Tabs.Panel>

@@ -11,8 +11,9 @@ import { showNotification } from "@mantine/notifications";
 import { IconThumbUp, IconX } from "@tabler/icons";
 
 import { getAmountAt, login, saveWallet } from "../wrappers/wallet_api";
-import { decryptData, getLastDayOfMonth, toSqlDate } from "../../tools";
+import { decryptData, getDatePattern, getLastDayOfMonth, toSqlDate } from "../../tools";
 
+import dayjs from "dayjs";
 import "dayjs/locale/fr";
 import "dayjs/locale/en";
 import "dayjs/locale/de";
@@ -50,6 +51,9 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
     const [expectedSaving, setExpectedSaving] = useState(false);
     const [saving, setSaving] = useState(false);
     const [amounts, setAmounts] = useState({ today: {}, endMonth: {} });
+    const [currentDate, setCurrentDate] = useState(
+        dayjs().locale(packagejson.i18n.defaultLocale).format(getDatePattern(packagejson.i18n.defaultLocale, false))
+    );
 
     let logoutTimout = null;
 
@@ -136,6 +140,12 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
             });
         });
     }, [wallet?.email, wallet?.walletItems]);
+
+    const refreshCurrentDate = () => {
+        setCurrentDate(
+            dayjs().locale(packagejson.i18n.defaultLocale).format(getDatePattern(packagejson.i18n.defaultLocale, false))
+        );
+    };
 
     const connect = (email, password, saveIdents) =>
         new Promise((resolve, reject) => {
@@ -387,6 +397,8 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                 disconnect,
                 connect,
                 refreshAmounts,
+                currentDate,
+                refreshCurrentDate,
                 amounts: useMemo(() => amounts, [amounts]),
                 openNavabar: () => setOpened(true),
                 closeNavbar: () => setOpened(false),

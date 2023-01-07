@@ -63,7 +63,8 @@ const App = () => {
                             width: "100%",
                             minHeight: "100vh",
                             margin: 0,
-                            padding: 0
+                            padding: 0,
+                            overflowX: "hidden"
                         },
 
                         ".mantine-List-itemWrapper": {

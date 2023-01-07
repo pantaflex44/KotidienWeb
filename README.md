@@ -34,3 +34,5 @@ Kotidien est sous licence libre et open-source. Cette licence vous permet de red
 ![Liste des opérations](./screenshots/screenshot-walletitem.png "Liste des opérations")
 
 ![Nouvelle opération](./screenshots/screenshot-newope.png "Nouvelle opération")
+
+![Liste des opérations](./screenshots/screenshot-opelist.png "Liste des opérations")

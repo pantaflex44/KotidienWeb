@@ -505,7 +505,6 @@ const intervalToDates = (interval) => {
     return dates;
 };
 
-
 module.exports = {
     slugify,
     writeJson,
