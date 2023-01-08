@@ -71,7 +71,7 @@ const createWallet = ({ email, password, name, note, walletItems, categories, pa
                 return true;
             })
             .catch((err) => {
-                console.log(err);
+                console.error(err);
                 return false;
             });
     } catch (err) {
@@ -113,7 +113,6 @@ const saveWalletMetas = (data) => {
 const saveOperation = (data) => {
     try {
         const { email, id, type, toWalletItemId, amount, comment, title, date, state, ...rest } = data;
-        console.log(data);
         let queryParams = {
             id,
             type,
@@ -137,7 +136,7 @@ const saveOperation = (data) => {
         const saved = db
             .open()
             .then((conn) => {
-                const query = `INSERT INTO Operations (${Object.keys(queryParams).join(", ")}) VALUES (${Object.keys(
+                const query = `REPLACE INTO Operations (${Object.keys(queryParams).join(", ")}) VALUES (${Object.keys(
                     queryParams
                 )
                     .map((k) => `:${k}`)
@@ -152,7 +151,7 @@ const saveOperation = (data) => {
             })
             .catch((err) => {
                 db.close();
-                console.log(err);
+                console.error(err);
                 return false;
             })
             .finally(() => {
@@ -194,7 +193,7 @@ const getAmountAt = (data) => {
             })
             .catch((err) => {
                 db.close();
-                console.log("sql", err);
+                console.error("sql", err);
                 return 0.0;
             })
             .finally(() => {
@@ -242,7 +241,7 @@ const getOperations = (data) => {
             })
             .catch((err) => {
                 db.close();
-                console.log("sql", err);
+                console.error("sql", err);
                 return 0.0;
             })
             .finally(() => {

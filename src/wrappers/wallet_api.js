@@ -49,10 +49,10 @@ export const getAmountAt = async (email, walletId, date) => {
     return { amount: 0.0, errorCode: 0, errorMessage: null, ...response.data };
 };
 
-export const getOperations = async (email, walletItemId, filters, sorter) => {
+export const getOperations = async (email, walletItemId, filters) => {
     const caller = api("/wallet/getoperations", "POST");
     const response = await caller.request({
-        body: encryptedData2body({ email, walletItemId, filters, sorter })
+        body: encryptedData2body({ email, walletItemId, filters })
     });
     return { operations: [], errorCode: 0, errorMessage: null, ...response.data };
 };

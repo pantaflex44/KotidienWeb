@@ -95,7 +95,7 @@ function OpeList({
     walletItem,
     items = [],
     selected = [],
-    disabled = false,
+    loading = false,
     onSelect = null,
     onUnselect = null,
     onChange = null
@@ -104,12 +104,9 @@ function OpeList({
     const [sortedItems, setSortedItems] = useState({});
     const [totalAmounts, setTotalAmounts] = useState({});
     const [collapsible, setCollapsible] = useState({});
-    const [loading, setLoading] = useState(true);
 
     const sortItems = useCallback(
         (items) => {
-            setLoading(true);
-
             const si = items
                 .sort(
                     (a, b) =>
@@ -129,7 +126,7 @@ function OpeList({
 
                     r[a.date] = r[a.date] || [];
                     r[a.date].push(a);
-                    r[a.date] = r[a.date].sort((a, b) => (a.id > b.id ? 1 : -1));
+                    r[a.date] = r[a.date].sort((a, b) => (a.id < b.id ? 1 : -1));
                     return r;
                 }, Object.create(null));
 
@@ -144,8 +141,6 @@ function OpeList({
                     }
                 });
             });
-
-            setLoading(false);
         },
         [items]
     );
@@ -195,6 +190,8 @@ function OpeList({
                             .reduce((a, b) => a + b, 0);
                         const total = sortedItems[k].map((i) => i.amount).reduce((a, b) => a + b, 0);
 
+                        const someChildAreSelected = sortedItems[k].map((s) => s.id).some((x) => selected.includes(x));
+
                         return (
                             <Timeline.Item
                                 key={k}
@@ -215,23 +212,26 @@ function OpeList({
                                 <Group
                                     spacing={"xl"}
                                     style={{ cursor: "pointer", flexWrap: "nowrap" }}
-                                    onClick={() =>
+                                    onClick={() => {
+                                        if (someChildAreSelected) return;
+
                                         setCollapsible((current) => ({
                                             ...current,
                                             [walletItem.id]: {
                                                 ...(current[walletItem.id] || {}),
                                                 [k]: current[walletItem.id] ? !current[walletItem.id][k] : false
                                             }
-                                        }))
-                                    }
+                                        }));
+                                    }}
                                 >
                                     <Group spacing={4} style={{ flexWrap: "nowrap" }}>
-                                        {collapsible[walletItem.id] && collapsible[walletItem.id][k] === true ? (
+                                        {(collapsible[walletItem.id] && collapsible[walletItem.id][k] === true) ||
+                                        someChildAreSelected ? (
                                             <IconChevronUp size={16} />
                                         ) : (
                                             <IconChevronDown size={16} />
                                         )}
-                                        <Text size={"xs"} lineClamp={1}>
+                                        <Text size={"xs"} truncate={true}>
                                             {sortedItems[k].length} opération
                                             {sortedItems[k].length > 1 ? "s" : ""}
                                         </Text>
@@ -250,7 +250,7 @@ function OpeList({
                                         )}
                                     </Group>
 
-                                    <Group spacing={"xs"} style={{ flexWrap: "nowrap" }}>
+                                    <Group spacing={4} style={{ flexWrap: "nowrap" }}>
                                         <Text color={"dimmed"} size={"xs"} lineClamp={1} fw={700}>
                                             ↓
                                         </Text>
@@ -262,7 +262,7 @@ function OpeList({
                                             size={"xs"}
                                         />
                                     </Group>
-                                    <Group spacing={"xs"} style={{ flexWrap: "nowrap" }}>
+                                    <Group spacing={4} style={{ flexWrap: "nowrap" }}>
                                         <Text color={"dimmed"} size={"xs"} lineClamp={1} fw={700}>
                                             ↑
                                         </Text>
@@ -274,7 +274,7 @@ function OpeList({
                                             size={"xs"}
                                         />
                                     </Group>
-                                    <Group spacing={"xs"} style={{ flexWrap: "nowrap" }}>
+                                    <Group spacing={4} style={{ flexWrap: "nowrap" }}>
                                         <Text color={"dimmed"} size={"xs"} lineClamp={1} fw={700}>
                                             ↔
                                         </Text>
@@ -289,11 +289,16 @@ function OpeList({
                                 </Group>
 
                                 <Collapse
-                                    in={collapsible[walletItem.id] && collapsible[walletItem.id][k]}
+                                    in={
+                                        (collapsible[walletItem.id] && collapsible[walletItem.id][k]) ||
+                                        someChildAreSelected
+                                    }
                                     mb={"sm"}
                                     mt={"xs"}
                                     style={{ minWidth: "100%" }}
                                 >
+                                    <Divider variant={"dotted"} />
+
                                     {sortedItems[k].map((item) => {
                                         const getThirdparty = (id) => {
                                             const found = app.wallet.thirdparties.filter((t) => t.id === id);
@@ -336,22 +341,58 @@ function OpeList({
                                             <Box
                                                 mt={0}
                                                 key={item.id}
-                                                py={"xs"}
-                                                pt={0}
                                                 style={{
-                                                    cursor: "default"
+                                                    cursor: "pointer"
+                                                }}
+                                                sx={{
+                                                    "&:nth-of-type(even)": {
+                                                        backgroundColor: selected.includes(item.id)
+                                                            ? app.theme.colorScheme === "dark"
+                                                                ? app.theme.colors.brand[7]
+                                                                : app.theme.colors.brand[3]
+                                                            : app.theme.colorScheme === "dark"
+                                                            ? app.theme.colors.gray[9]
+                                                            : app.theme.colors.gray[0]
+                                                    },
+                                                    "&:hover": {
+                                                        backgroundColor: selected.includes(item.id)
+                                                            ? app.theme.colorScheme === "dark"
+                                                                ? app.theme.colors.brand[7]
+                                                                : app.theme.colors.brand[3]
+                                                            : app.theme.colorScheme === "dark"
+                                                            ? app.theme.colors.gray[8]
+                                                            : app.theme.colors.gray[1]
+                                                    },
+                                                    backgroundColor: selected.includes(item.id)
+                                                        ? app.theme.colorScheme === "dark"
+                                                            ? app.theme.colors.brand[7]
+                                                            : app.theme.colors.brand[3]
+                                                        : "inherit",
+                                                    color: selected.includes(item.id) ? "#fff" : "inherit"
+                                                }}
+                                                onClick={() => {
+                                                    const withCtrl = window && window.event.ctrlKey;
+
+                                                    if (selected.includes(item.id) && onUnselect) {
+                                                        onUnselect(withCtrl ? [item.id] : item.id);
+                                                    }
+                                                    if (!selected.includes(item.id) && onSelect) {
+                                                        onSelect(withCtrl ? [item.id] : item.id);
+                                                    }
                                                 }}
                                             >
-                                                <Group spacing={"md"} position={"apart"}>
-                                                    <Group spacing={"md"}>
-                                                        <Group spacing={"md"} style={{ flexWrap: "nowrap" }}>
-                                                            <Stack justify={"center"} align={"center"} spacing={0}>
+                                                <Group spacing={0} position={"apart"} style={{ minHeight: "60px" }}>
+                                                    <Group spacing={"xs"}>
+                                                        <Group spacing={0} style={{ flexWrap: "nowrap" }}>
+                                                            <Stack
+                                                                justify={"center"}
+                                                                align={"center"}
+                                                                spacing={0}
+                                                                py={"md"}
+                                                                px={"xs"}
+                                                            >
                                                                 <Checkbox
-                                                                    checked={
-                                                                        (Array.isArray(selected) &&
-                                                                            selected.includes(item.id)) ||
-                                                                        selected === item.id
-                                                                    }
+                                                                    checked={selected.includes(item.id)}
                                                                     onChange={(event) => {
                                                                         if (event.currentTarget.checked && onSelect) {
                                                                             onSelect([item.id]);
@@ -368,13 +409,15 @@ function OpeList({
                                                                 />
                                                             </Stack>
 
-                                                            <Divider orientation="vertical" />
+                                                            <Divider orientation="vertical" variant={"dotted"} />
 
                                                             <Stack
                                                                 justify={"flex-start"}
                                                                 align={"flex-start"}
                                                                 spacing={0}
                                                                 style={{ width: "400px" }}
+                                                                py={"xs"}
+                                                                px={"xs"}
                                                             >
                                                                 <Group spacing={"xs"} style={{ flexWrap: "nowrap" }}>
                                                                     {item.type === "operation" && (
@@ -391,7 +434,12 @@ function OpeList({
                                                                             color={"#339AF0"}
                                                                         />
                                                                     )}
-                                                                    <Tooltip label={item.comment || ""}>
+                                                                    <Tooltip
+                                                                        label={
+                                                                            item.comment ||
+                                                                            "(aucun commentaire sur cette opération)"
+                                                                        }
+                                                                    >
                                                                         <Text size={"sm"} fw={500} lineClamp={1}>
                                                                             {item.title}
                                                                         </Text>
@@ -412,9 +460,6 @@ function OpeList({
                                                                                     stroke={2}
                                                                                     color={app.theme.colors.yellow[7]}
                                                                                     style={{ cursor: "pointer" }}
-                                                                                    onClick={() =>
-                                                                                        updateItemState(item.id, 0)
-                                                                                    }
                                                                                 />
                                                                             ) : (
                                                                                 <IconSquare
@@ -426,9 +471,6 @@ function OpeList({
                                                                                             : app.theme.colors.gray[3]
                                                                                     }
                                                                                     style={{ cursor: "pointer" }}
-                                                                                    onClick={() =>
-                                                                                        updateItemState(item.id, 1)
-                                                                                    }
                                                                                 />
                                                                             )}
                                                                         </Stack>
@@ -449,12 +491,16 @@ function OpeList({
                                                             </Stack>
                                                         </Group>
 
-                                                        <Stack justify={"flex-start"} align={"flex-start"} spacing={0}>
+                                                        <Stack
+                                                            justify={"flex-start"}
+                                                            align={"flex-start"}
+                                                            spacing={0}
+                                                            style={{ minWidth: "150px" }}
+                                                            px={"xs"}
+                                                        >
                                                             <Text
                                                                 size={"xs"}
-                                                                color={
-                                                                    app.theme.colorScheme === "dark" ? "gray.8" : "gray.0"
-                                                                }
+                                                                color={"gray.0"}
                                                                 lineClamp={1}
                                                                 sx={(theme) => ({
                                                                     backgroundColor:
@@ -467,6 +513,7 @@ function OpeList({
                                                                     paddingInline: "4px",
                                                                     borderRadius: "5px"
                                                                 })}
+                                                                mt={2}
                                                             >
                                                                 {itemCategory}
                                                             </Text>
@@ -475,6 +522,7 @@ function OpeList({
                                                                 color={"dimmed"}
                                                                 lineClamp={1}
                                                                 align={"right"}
+                                                                mt={2}
                                                             >
                                                                 {itemPaytype}
                                                             </Text>
@@ -489,12 +537,12 @@ function OpeList({
                                                             lineClamp={1}
                                                             align={"right"}
                                                             fw={500}
-                                                            color={app.theme.colors.brand[5]}
+                                                            p={"xs"}
                                                         />
                                                     </Stack>
                                                 </Group>
 
-                                                <Divider variant={"dotted"} mt={"sm"} />
+                                                <Divider variant={"dotted"} />
                                             </Box>
                                         );
                                     })}

@@ -33,6 +33,7 @@ import {
     IconCalendarEvent,
     IconCash,
     IconCategory,
+    IconCheck,
     IconCurrencyEuro,
     IconEdit,
     IconFilter,
@@ -40,7 +41,9 @@ import {
     IconPlus,
     IconQuote,
     IconRefresh,
+    IconSquare,
     IconSquareCheck,
+    IconSquareMinus,
     IconTag,
     IconThumbUp,
     IconTrash,
@@ -60,8 +63,7 @@ function Wallet({
     walletItem,
     walletFilters = defaultWalletItemViewFilter,
     walletSorter = defaultWalletItemViewSorter,
-    id = uid(),
-    ...props
+    id = uid()
 }) {
     const app = useContext(AppContext);
     const [addEditModalOpened, setAddEditModalOpened] = useState(false);
@@ -155,7 +157,7 @@ function Wallet({
     const memoizedCategories = useMemo(() => getCategories(), [app.wallet?.categories]);
     const memoizedPaytypes = useMemo(() => getPaytypes(), [app.wallet?.paytypes]);
 
-    const openOpe = (type, forceNew = false) => {
+    const openOpe = (type = "operation", forceNew = false) => {
         addEditForm.reset();
 
         let data = {};
@@ -164,15 +166,29 @@ function Wallet({
             data = { ...data, type };
             if (type === "transfer") data = { ...data, fromWalletItemId: "" };
         } else {
-            data = { ...selected[0] };
+            const selectedOpe = opeListItems.filter((o) => o.id === selected[0]);
+            if (selectedOpe.length === 1) data = { ...selectedOpe[0], date: new Date(Date.parse(selectedOpe[0].date)) };
         }
 
-        addEditForm.setValues((current) => {
-            const newData = { ...current, ...data };
-            return newData;
-        });
+        if (Object.keys(data).length === 0) {
+            showNotification({
+                id: "open-operation-error-notification",
+                disallowClose: true,
+                autoClose: 5000,
+                title: "Impossible d'éditer' cette opération!",
+                message: "Cette opération semble corrompue, ou comporte de mauvaise données!",
+                color: "red",
+                icon: <IconX size={18} />,
+                loading: false
+            });
+        } else {
+            addEditForm.setValues((current) => {
+                const newData = { ...current, ...data };
+                return newData;
+            });
 
-        setAddEditModalOpened(true);
+            setAddEditModalOpened(true);
+        }
     };
 
     const saveOpe = (closeAfterSave = false) => {
@@ -240,6 +256,8 @@ function Wallet({
                             app.refreshAmounts();
                             loadOpeList();
 
+                            setSelected([newOpe.id]);
+
                             if (closeAfterSave) setAddEditModalOpened(false);
                         }
                     })
@@ -268,8 +286,42 @@ function Wallet({
 
     const updateOpe = (items) => {
         if (items.length === 0) return;
-        console.log(items);
-        console.error("SAVE UPDATED OPERATIONS IN DATABASE");
+
+        items.map((item) => {
+            setSaving(true);
+
+            saveOperation(app.wallet.email, item)
+                .then((response) => {
+                    const { saved, errorCode, errorMessage } = response;
+
+                    if (!saved || errorCode !== 0) {
+                        showNotification({
+                            id: `${item.id}-state-operation-error-notification-${uid()}`,
+                            disallowClose: true,
+                            autoClose: 5000,
+                            title: `Impossible de modifier l'état de l'opération '${item.title}'`,
+                            message: errorMessage,
+                            color: "red",
+                            icon: <IconX size={18} />,
+                            loading: false
+                        });
+                    } else {
+                        showNotification({
+                            id: `${item.id}-state-operation-notification-${uid()}`,
+                            disallowClose: true,
+                            autoClose: 5000,
+                            title: "Modification d'état",
+                            message: `Etat de l'opération '${item.title}' modifié avec succès.`,
+                            color: "green",
+                            icon: <IconThumbUp size={18} />,
+                            loading: false
+                        });
+                    }
+                })
+                .finally(() => {
+                    setSaving(false);
+                });
+        });
     };
 
     const compareOpeListItems = (newItems, oldItems) => {
@@ -349,12 +401,6 @@ function Wallet({
             "mod+alt+T",
             () => {
                 if (!loading) openOpe("transfer", true);
-            }
-        ],
-        [
-            "delete",
-            () => {
-                if (!loading) deleteOpe();
             }
         ],
         [
@@ -596,7 +642,7 @@ function Wallet({
                                         color={app.theme.colors.gray[7]}
                                         disabled={loading}
                                         onClick={() => {
-                                            openOpe("operation");
+                                            openOpe("operation", true);
                                         }}
                                     >
                                         <IconPlus size={16} stroke={2.5} />
@@ -613,7 +659,7 @@ function Wallet({
                                         color={app.theme.colors.gray[7]}
                                         disabled={loading}
                                         onClick={() => {
-                                            openOpe("transfer");
+                                            openOpe("transfer", true);
                                         }}
                                     >
                                         <IconArrowsTransferDown size={16} stroke={2.5} />
@@ -625,22 +671,24 @@ function Wallet({
                                         variant={"subtle"}
                                         color={"dark"}
                                         disabled={loading || selected.length !== 1}
+                                        onClick={() => {
+                                            openOpe();
+                                        }}
                                     >
-                                        <IconEdit size={16} stroke={1.5} />
+                                        <IconEdit size={16} stroke={2} />
                                     </ActionIcon>
                                 </Tooltip>
                                 <Tooltip label={"Supprimer (Suppr)"} withinPortal={true} withArrow={true}>
                                     <ActionIcon
                                         size="md"
-                                        variant={"subtle"}
+                                        variant={"outline"}
                                         color={"red.9"}
                                         disabled={loading || selected.length < 1}
                                         onClick={() => {
-                                            const items = opeListItems.filter((item) => selected.includes(item.id));
-                                            deleteOpe(items);
+                                            deleteOpe(opeListItems.filter((item) => selected.includes(item.id)));
                                         }}
                                     >
-                                        <IconTrash size={16} stroke={1.5} />
+                                        <IconTrash size={16} stroke={2} />
                                     </ActionIcon>
                                 </Tooltip>
                                 <Divider orientation={"vertical"} />
@@ -652,18 +700,29 @@ function Wallet({
                                         disabled={loading || selected.length < 1}
                                         onClick={() => {
                                             setOpeListItems((current) => {
-                                                const newItems = current.map((item) => {
-                                                    if (selected.includes(item.id)) {
-                                                        return { ...item, state: item.state === 1 ? 0 : 1 };
-                                                    }
-                                                    return item;
-                                                });
-                                                updateOpe(newItems);
-                                                return newItems;
+                                                const newItems = current
+                                                    .map((item) => {
+                                                        if (selected.includes(item.id)) {
+                                                            return { ...item, state: item.state === 1 ? 0 : 1 };
+                                                        }
+                                                        return null;
+                                                    })
+                                                    .filter((r) => r !== null);
+
+                                                const { updated } = compareOpeListItems(newItems, current);
+                                                if (updated && updated.length > 0) {
+                                                    const updatedIds = updated.map((u) => u.id);
+                                                    const old = current.filter((c) => !updatedIds.includes(c.id));
+
+                                                    updateOpe(updated);
+
+                                                    return [...old, ...updated];
+                                                }
+                                                return current;
                                             });
                                         }}
                                     >
-                                        <IconSquareCheck size={16} stroke={1.5} />
+                                        <IconCheck size={16} stroke={2} />
                                     </ActionIcon>
                                 </Tooltip>
                                 <Divider orientation={"vertical"} />
@@ -676,7 +735,7 @@ function Wallet({
                                         loading={loading}
                                         disabled={loading}
                                     >
-                                        <IconRefresh size={16} stroke={1.5} />
+                                        <IconRefresh size={16} stroke={2} />
                                     </ActionIcon>
                                 </Tooltip>
                                 <Tooltip
@@ -691,7 +750,40 @@ function Wallet({
                                         onClick={() => setFiltersOpened((old) => !old)}
                                         disabled={loading}
                                     >
-                                        <IconFilter size={16} stroke={1.5} />
+                                        <IconFilter size={16} stroke={2} />
+                                    </ActionIcon>
+                                </Tooltip>
+                                <Tooltip
+                                    label={
+                                        selected.length !== opeListItems.length
+                                            ? `Tout sélectionner (${opeListItems.length} opération${
+                                                  opeListItems.length > 1 ? "s" : ""
+                                              })`
+                                            : "Tout déselectionner"
+                                    }
+                                    withinPortal={true}
+                                    withArrow={true}
+                                >
+                                    <ActionIcon
+                                        size="md"
+                                        variant={"subtle"}
+                                        color={"dark"}
+                                        onClick={() => {
+                                            if (selected.length !== opeListItems.length) {
+                                                setSelected(opeListItems.map((o) => o.id));
+                                            } else {
+                                                setSelected([]);
+                                            }
+                                        }}
+                                        disabled={loading || opeListItems.length === 0}
+                                    >
+                                        {selected.length === 0 ? (
+                                            <IconSquareCheck size={16} stroke={2} />
+                                        ) : selected.length === opeListItems.length ? (
+                                            <IconSquare size={16} stroke={2} />
+                                        ) : (
+                                            <IconSquareMinus size={16} stroke={2} />
+                                        )}
                                     </ActionIcon>
                                 </Tooltip>
                             </Group>
@@ -717,19 +809,35 @@ function Wallet({
                                         items={opeListItems}
                                         selected={selected}
                                         onSelect={(ids) => {
-                                            setSelected((current) => [
-                                                ...current,
-                                                ...ids.filter((id) => !current.includes(id))
-                                            ]);
+                                            if (Array.isArray(ids)) {
+                                                setSelected((current) => [
+                                                    ...current,
+                                                    ...ids.filter((id) => !current.includes(id))
+                                                ]);
+                                            } else {
+                                                setSelected([ids]);
+                                            }
                                         }}
                                         onUnselect={(ids) => {
-                                            setSelected((current) => current.filter((id) => !ids.includes(id)));
+                                            if (Array.isArray(ids)) {
+                                                setSelected((current) => current.filter((id) => !ids.includes(id)));
+                                            } else {
+                                                setSelected((current) => current.filter((id) => id !== ids));
+                                            }
                                         }}
-                                        disabled={loading}
+                                        loading={loading}
                                         onChange={(newItems) => {
                                             setOpeListItems((current) => {
-                                                updateOpe(newItems);
-                                                return newItems;
+                                                const { updated } = compareOpeListItems(newItems, current);
+                                                if (updated && updated.length > 0) {
+                                                    const updatedIds = updated.map((u) => u.id);
+                                                    const old = current.filter((c) => !updatedIds.includes(c.id));
+
+                                                    updateOpe(updated);
+
+                                                    return [...old, ...updated];
+                                                }
+                                                return current;
                                             });
                                         }}
                                     />

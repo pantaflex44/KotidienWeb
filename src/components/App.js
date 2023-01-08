@@ -52,7 +52,7 @@ const App = () => {
                     globalStyles: (theme) => ({
                         "*, *::before, *::after": {
                             boxSizing: "border-box",
-                            transition: "all 0.15s ease-out"
+                            transition: "all 0s ease-out"
                         },
 
                         body: {
