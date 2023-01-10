@@ -27,4 +27,9 @@
         "path": "/api/wallet/getoperations",
         "controller": "./controllers/wallet/getoperations.js"
     }
+    ,
+    {
+        "path": "/api/wallet/deleteoperations",
+        "controller": "./controllers/wallet/deleteoperations.js"
+    }
 ]

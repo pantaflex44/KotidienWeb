@@ -38,8 +38,14 @@ function FiltersBar({
     const [view, setView] = useState({
         filters: {
             ...filters,
-            startDate: typeof filter.startDate === "string" ? new Date(filters.startDate) : filter.startDate,
-            endDate: typeof filter.endDate === "string" ? new Date(filters.endDate) : filter.endDate
+            startDate:
+                (typeof filters.startDate === "string" ? new Date(filters.startDate) : filters.startDate) ||
+                intervalToDates(filters.interval)[0] ||
+                getFirstDayOfCurrentMonth(),
+            endDate:
+                (typeof filters.endDate === "string" ? new Date(filters.endDate) : filters.endDate) ||
+                intervalToDates(filters.interval)[1] ||
+                getLastDayOfCurrentMonth()
         },
         sorter: { ...sorter }
     });
@@ -72,20 +78,26 @@ function FiltersBar({
         return thirdparties;
     }
 
-    useLayoutEffect(() => {
+    /*useLayoutEffect(() => {
         setView({
             filters: {
                 ...filters,
                 startDate:
-                    (typeof filter.startDate === "string" ? new Date(filters.startDate) : filter.startDate) ||
+                    (typeof filters.startDate === "string" ? new Date(filters.startDate) : filters.startDate) ||
+                    intervalToDates(filters.interval)[0] ||
                     getFirstDayOfCurrentMonth(),
                 endDate:
-                    (typeof filter.endDate === "string" ? new Date(filters.endDate) : filter.endDate) ||
+                    (typeof filters.endDate === "string" ? new Date(filters.endDate) : filters.endDate) ||
+                    intervalToDates(filters.interval)[1] ||
                     getLastDayOfCurrentMonth()
             },
             sorter: { ...sorter }
         });
-    }, [filters, sorter]);
+    }, [filters, sorter]);*/
+
+    useLayoutEffect(() => {
+        resetFilters();
+    }, []);
 
     useEffect(() => {
         setFiltersOpened(visible);

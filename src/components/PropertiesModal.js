@@ -1,18 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 
-import {
-    Button,
-    Divider,
-    Group,
-    Modal,
-    PasswordInput,
-    Space,
-    Stack,
-    Tabs,
-    Text,
-    Textarea,
-    TextInput
-} from "@mantine/core";
+import { Button, Group, Modal, PasswordInput, Stack, Tabs, Text, Textarea, TextInput } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import { useDisclosure } from "@mantine/hooks";
 import { IconCash, IconLock, IconPencil, IconSettings2, IconTextSize, IconX } from "@tabler/icons";
@@ -204,7 +192,7 @@ function PropertiesModal({
                         />
                     </Tabs.Panel>
                 </Tabs>
-                
+
                 <Group position={"right"}>
                     <Button onClick={() => setOpened(false)}>Fermer</Button>
                 </Group>

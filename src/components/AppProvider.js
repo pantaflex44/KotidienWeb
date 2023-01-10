@@ -313,6 +313,25 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
         setExpectedSaving(true);
     };
 
+    const setSettings = (newSettings) => {
+        const settings = {};
+
+        Object.keys(newSettings).map((s) => {
+            let ks = s.split("_");
+            let currentLevel = settings;
+            ks.map((k, idx) => {
+                if (!currentLevel[k]) currentLevel[k] = idx < ks.length - 1 ? {} : newSettings[s];
+                currentLevel = currentLevel[k];
+            });
+        });
+
+        setWallet((old) => ({
+            ...old,
+            params: { ...old.params, ...settings }
+        }));
+        setExpectedSaving(true);
+    };
+
     const setView = (walletItemId, newView) => {
         setWallet((old) => ({
             ...old,
@@ -393,6 +412,7 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                 setPaytypes,
                 setThirdparties,
                 setProperties,
+                setSettings,
                 setView,
                 disconnect,
                 connect,

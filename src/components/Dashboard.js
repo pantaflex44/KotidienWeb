@@ -248,6 +248,15 @@ function Dashboard() {
         [app.wallet.name, app.wallet.note, app.wallet.walletItems]
     );
 
+    useEffect(() => {
+        if (app.idle) {
+            setCategoriesSettingsOpened(false);
+            setPaytypesSettingsOpened(false);
+            setPropertiesSettingsOpened(false);
+            setThirdpartiesSettingsOpened(false);
+        }
+    }, [app.idle]);
+
     return !loading ? (
         <>
             <CategoriesModal

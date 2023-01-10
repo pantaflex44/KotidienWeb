@@ -3,10 +3,11 @@ import defaultWalletItemViewFilter from "../../defaults/walletItemViewFilter";
 import defaultWalletItemViewSorter from "../../defaults/walletItemViewSorter";
 import { defaultWalletCategories } from "../../defaults/walletCategories";
 
-import React, { useCallback, useContext, useLayoutEffect, useMemo, useState } from "react";
+import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
 
 import {
     ActionIcon,
+    Alert,
     Button,
     Checkbox,
     Divider,
@@ -17,23 +18,24 @@ import {
     Space,
     Stack,
     Tabs,
+    Text,
     TextInput,
     Tooltip
 } from "@mantine/core";
 import { DatePicker } from "@mantine/dates";
-import { closeAllModals } from "@mantine/modals";
+import { closeAllModals, openConfirmModal } from "@mantine/modals";
 import { useForm } from "@mantine/form";
-import { useFocusTrap, useHotkeys } from "@mantine/hooks";
+import { getHotkeyHandler, useClickOutside, useFocusTrap, useHotkeys } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 
 import {
+    IconAlertCircle,
     IconArrowsTransferDown,
     IconBuildingBank,
     IconCalendar,
     IconCalendarEvent,
     IconCash,
     IconCategory,
-    IconCheck,
     IconCurrencyEuro,
     IconEdit,
     IconFilter,
@@ -41,6 +43,7 @@ import {
     IconPlus,
     IconQuote,
     IconRefresh,
+    IconRotateRectangle,
     IconSquare,
     IconSquareCheck,
     IconSquareMinus,
@@ -57,7 +60,7 @@ import WalletResumeBox from "./WalletResumeBox";
 import OpeList from "./OpeList";
 
 import { getDatePattern, toSqlDate, uid } from "../../tools";
-import { saveOperation, getOperations } from "../wrappers/wallet_api";
+import { saveOperation, getOperations, deleteOperations } from "../wrappers/wallet_api";
 
 function Wallet({
     walletItem,
@@ -74,6 +77,7 @@ function Wallet({
     const [filters, setFilters] = useState({ ...walletFilters });
     const [sorter, setSorter] = useState({ ...walletSorter });
     const [opeListItems, setOpeListItems] = useState([]);
+    const [forceRefresh, setForceRefresh] = useState("");
 
     const addEditForm = useForm({
         initialValues: {
@@ -170,9 +174,11 @@ function Wallet({
             if (selectedOpe.length === 1) data = { ...selectedOpe[0], date: new Date(Date.parse(selectedOpe[0].date)) };
         }
 
+        if (data.type === "transfer" && data.amount >= 0) return;
+
         if (Object.keys(data).length === 0) {
             showNotification({
-                id: "open-operation-error-notification",
+                id: `open-operation-error-notification-${uid()}`,
                 disallowClose: true,
                 autoClose: 5000,
                 title: "Impossible d'éditer' cette opération!",
@@ -232,7 +238,7 @@ function Wallet({
 
                         if (!saved || errorCode !== 0) {
                             showNotification({
-                                id: "save-operation-error-notification",
+                                id: `save-operation-error-notification-${uid()}`,
                                 disallowClose: true,
                                 autoClose: 5000,
                                 title: "Impossible d'enregistrer cette opération!",
@@ -243,7 +249,7 @@ function Wallet({
                             });
                         } else {
                             showNotification({
-                                id: "save-operation-notification",
+                                id: `save-operation-notification-${uid()}`,
                                 disallowClose: true,
                                 autoClose: 5000,
                                 title: "Opération",
@@ -280,8 +286,67 @@ function Wallet({
 
     const deleteOpe = (items) => {
         if (items.length === 0) return;
-        console.log(items);
-        console.error("DELETE OPERATIONS IN DATABASE");
+
+        openConfirmModal({
+            title: "Supprimer des opérations",
+            children: (
+                <Text size="sm" mb="lg" data-autofocus>
+                    Souhaitez-vous supprimer les {items.length} opération{items.length > 1 ? "s" : ""} sélectionnée
+                    {items.length > 1 ? "s" : ""}?
+                </Text>
+            ),
+            withCloseButton: true,
+            closeOnEscape: true,
+            closeOnClickOutside: true,
+            centered: true,
+            overlayColor: app.theme.colorScheme === "dark" ? app.theme.colors.dark[9] : app.theme.colors.gray[2],
+            overlayOpacity: 0.55,
+            overlayBlur: 3,
+            onConfirm: () => {
+                deleteOperations(app.wallet.email, items)
+                    .then((response) => {
+                        const { deleted, errorCode, errorMessage } = response;
+
+                        if (!deleted || errorCode !== 0) {
+                            showNotification({
+                                id: `delete-operation-error-notification-${uid()}`,
+                                disallowClose: true,
+                                autoClose: 5000,
+                                title: "Impossible de supprimer une des opérations sélectionnées!",
+                                message: errorMessage,
+                                color: "red",
+                                icon: <IconX size={18} />,
+                                loading: false
+                            });
+                        } else {
+                            showNotification({
+                                id: `delete-operation-notification-${uid()}`,
+                                disallowClose: true,
+                                autoClose: 5000,
+                                title: "Supressions",
+                                message: "Toutes les opérations sélectionnées ont éte supprimées.",
+                                color: "green",
+                                icon: <IconThumbUp size={18} />,
+                                loading: false
+                            });
+
+                            app.refreshAmounts();
+                            loadOpeList();
+
+                            closeAllModals();
+                        }
+                    })
+                    .finally(() => {
+                        setSaving(false);
+                    });
+            },
+            onCancel: () => {
+                setSaving(false);
+                closeAllModals();
+            }
+        });
+
+        setSaving(true);
     };
 
     const updateOpe = (items) => {
@@ -349,7 +414,7 @@ function Wallet({
 
                 if (errorCode !== 0) {
                     showNotification({
-                        id: "get-operation-error-notification",
+                        id: `get-operation-error-notification-${uid()}`,
                         disallowClose: true,
                         autoClose: 5000,
                         title: "Impossible de lister les opérations!",
@@ -386,32 +451,120 @@ function Wallet({
             .finally(() => {
                 setLoading(false);
             });
-    }, [walletItem.id, filters, app.currentDate]);
+    }, [walletItem.id, filters, app.currentDate, forceRefresh]);
 
-    useLayoutEffect(() => loadOpeList(), [walletItem.id, filters, app.currentDate]);
+    useEffect(() => {
+        if (app.idle) {
+            setAddEditModalOpened(false);
+        }
+    }, [app.idle]);
+
+    useLayoutEffect(() => {
+        setForceRefresh(uid());
+        loadOpeList();
+    }, [walletItem.id, filters, app.currentDate]);
 
     useHotkeys([
         [
             "mod+alt+N",
             () => {
-                if (!loading) openOpe("operation", true);
+                if (!loading && !addEditModalOpened) openOpe("operation", true);
             }
         ],
         [
             "mod+alt+T",
             () => {
-                if (!loading) openOpe("transfer", true);
+                if (!loading && !addEditModalOpened) openOpe("transfer", true);
             }
         ],
         [
             "mod+alt+F",
             () => {
-                if (!loading) setFiltersOpened((old) => !old);
+                if (!loading && !addEditModalOpened) setFiltersOpened((old) => !old);
+            }
+        ],
+        [
+            "mod+alt+F5",
+            () => {
+                if (!loading && !addEditModalOpened) loadOpeList();
+            }
+        ],
+        [
+            "Delete",
+            () => {
+                if (!loading && !addEditModalOpened && selected.length > 0)
+                    deleteOpe(opeListItems.filter((item) => selected.includes(item.id)));
+            }
+        ],
+        [
+            "Enter",
+            () => {
+                if (!loading && !addEditModalOpened && selected.length === 1) openOpe();
+            }
+        ],
+        [
+            "mod+alt+A",
+            () => {
+                if (!loading && !addEditModalOpened && selected.length !== opeListItems.length) {
+                    setSelected(opeListItems.map((o) => o.id));
+                }
+            }
+        ],
+        [
+            "Escape",
+            () => {
+                if (!loading && !addEditModalOpened) setSelected([]);
+            }
+        ],
+        [
+            "ArrowDown",
+            () => {
+                if (!loading && !addEditModalOpened) {
+                    if (selected.length === 0) {
+                        setSelected([opeListItems[0].id]);
+                    } else {
+                        const index = opeListItems.findIndex((o) => o.id === selected[0]);
+                        if (index < opeListItems.length - 1) {
+                            setSelected([opeListItems[index + 1].id]);
+                        }
+                    }
+                }
+            }
+        ],
+        [
+            "ArrowUp",
+            () => {
+                if (!loading && !addEditModalOpened) {
+                    if (selected.length === 0) {
+                        setSelected([opeListItems[opeListItems.length - 1].id]);
+                    } else {
+                        const index = opeListItems.findIndex((o) => o.id === selected[0]);
+                        if (index > 0) {
+                            setSelected([opeListItems[index - 1].id]);
+                        }
+                    }
+                }
+            }
+        ],
+        [
+            "ArrowLeft",
+            () => {
+                if (!loading && !addEditModalOpened) setSelected([opeListItems[0].id]);
+            }
+        ],
+        [
+            "ArrowRight",
+            () => {
+                if (!loading && !addEditModalOpened) setSelected([opeListItems[opeListItems.length - 1].id]);
             }
         ]
     ]);
 
     const focusTrapRef = useFocusTrap();
+
+    const outsideRef = useClickOutside(() => {
+        if (!addEditModalOpened) setSelected([]);
+    });
 
     return (
         <>
@@ -628,8 +781,8 @@ function Wallet({
                             Planification
                         </Tabs.Tab>
                     </Tabs.List>
-                    <Tabs.Panel value="details" pt={"md"} sx={(theme) => ({ flex: "1 1 auto" })}>
-                        <Stack data-autofocus={true}>
+                    <Tabs.Panel value="details" pt={"md"} sx={(theme) => ({ flex: "1 1 auto" })} ref={outsideRef}>
+                        <Stack>
                             <Group position={"left"} spacing={"xs"}>
                                 <Tooltip
                                     label={"Ajouter une opération (Ctrl+Alt+N)"}
@@ -665,7 +818,7 @@ function Wallet({
                                         <IconArrowsTransferDown size={16} stroke={2.5} />
                                     </ActionIcon>
                                 </Tooltip>
-                                <Tooltip label={"Modifier"} withinPortal={true} withArrow={true}>
+                                <Tooltip label={"Modifier (Entrée)"} withinPortal={true} withArrow={true}>
                                     <ActionIcon
                                         size="md"
                                         variant={"subtle"}
@@ -722,7 +875,7 @@ function Wallet({
                                             });
                                         }}
                                     >
-                                        <IconCheck size={16} stroke={2} />
+                                        <IconRotateRectangle size={16} stroke={2} />
                                     </ActionIcon>
                                 </Tooltip>
                                 <Divider orientation={"vertical"} />
@@ -758,7 +911,7 @@ function Wallet({
                                         selected.length !== opeListItems.length
                                             ? `Tout sélectionner (${opeListItems.length} opération${
                                                   opeListItems.length > 1 ? "s" : ""
-                                              })`
+                                              }) (Ctrl+Alt+A)`
                                             : "Tout déselectionner"
                                     }
                                     withinPortal={true}
@@ -795,10 +948,50 @@ function Wallet({
                                         filters={filters}
                                         visible={filtersOpened}
                                         disabled={loading}
-                                        onChange={() => loadOpeList()}
+                                        onChange={(view) => {
+                                            setFilters((current) => ({ ...current, ...view.filters }));
+                                            //setSorter((current) => ({ ...current, ...view.sorter }));
+                                        }}
                                     />
                                 ),
                                 [walletItem.id, filters, filtersOpened, loading]
+                            )}
+
+                            {opeListItems && opeListItems.length === 0 && (
+                                <Alert icon={<IconAlertCircle size={16} />} title="Oups!" color="gray">
+                                    <Text size={"sm"}>Aucune opération correspondante aux filtres sélectionnés!</Text>
+                                    <Group spacing={"lg"} position={"left"} mt={"md"}>
+                                        <Text
+                                            size={"xs"}
+                                            fw={500}
+                                            variant={"link"}
+                                            style={{ cursor: "pointer" }}
+                                            onClick={() => openOpe("operation", true)}
+                                        >
+                                            nouvelle opération
+                                        </Text>
+                                        <Text
+                                            size={"xs"}
+                                            fw={500}
+                                            variant={"link"}
+                                            style={{ cursor: "pointer" }}
+                                            onClick={() => openOpe("transfer", true)}
+                                        >
+                                            nouveau transfert
+                                        </Text>
+                                        {!filtersOpened && (
+                                            <Text
+                                                size={"xs"}
+                                                fw={500}
+                                                variant={"link"}
+                                                style={{ cursor: "pointer" }}
+                                                onClick={() => setFiltersOpened(true)}
+                                            >
+                                                ouvrir les filtres
+                                            </Text>
+                                        )}
+                                    </Group>
+                                </Alert>
                             )}
 
                             {useMemo(
@@ -825,24 +1018,13 @@ function Wallet({
                                                 setSelected((current) => current.filter((id) => id !== ids));
                                             }
                                         }}
-                                        loading={loading}
-                                        onChange={(newItems) => {
-                                            setOpeListItems((current) => {
-                                                const { updated } = compareOpeListItems(newItems, current);
-                                                if (updated && updated.length > 0) {
-                                                    const updatedIds = updated.map((u) => u.id);
-                                                    const old = current.filter((c) => !updatedIds.includes(c.id));
-
-                                                    updateOpe(updated);
-
-                                                    return [...old, ...updated];
-                                                }
-                                                return current;
-                                            });
+                                        onUnselectAll={() => {
+                                            setSelected([]);
                                         }}
+                                        loading={loading}
                                     />
                                 ),
-                                [opeListItems, loading, app.currentDate, walletItem, selected]
+                                [opeListItems, loading, app.currentDate, walletItem, selected, forceRefresh]
                             )}
                         </Stack>
                     </Tabs.Panel>

@@ -2,8 +2,9 @@ const packagejson = require("../../package.json");
 
 const path = require("path");
 const fs = require("fs");
-const { toB64, writeJson, secureKey, readJson, uid } = require("../../tools");
+const { toB64, writeJson, secureKey, readJson, uid, getDatePattern } = require("../../tools");
 const Db = require("../../db");
+const dayjs = require("dayjs");
 
 const getWallet = (email) => path.resolve(__dirname, "..", "..", "data", toB64(email));
 const getWalletFile = (email) => path.resolve(getWallet(email), "wallet");
@@ -211,13 +212,45 @@ const getOperations = (data) => {
     try {
         const { email, walletItemId, filters } = data;
 
+        let formattedFilters = [
+            `DATE(date) >= DATE('${dayjs(filters.startDate)
+                .locale(packagejson.i18n.defaultLocale)
+                .format("YYYY-MM-DD")}') AND DATE(date) <= DATE('${dayjs(filters.endDate)
+                .locale(packagejson.i18n.defaultLocale)
+                .format("YYYY-MM-DD")}')`
+        ];
+
+        let types = [];
+        if (filters.types.includes("transfers")) types.push("(type = 'transfer')");
+        if (filters.types.includes("pendings")) types.push("(type = 'operation' AND amount < 0)");
+        if (filters.types.includes("incomes")) types.push("(type = 'operation' AND amount >= 0)");
+        formattedFilters = [...formattedFilters, `(${types.join(" OR ")})`];
+
+        if (filters.states === "closed") formattedFilters = [...formattedFilters, "state = 1"];
+        if (filters.states === "notclosed") formattedFilters = [...formattedFilters, "state = 0"];
+
+        if (filters.paytypes.length > 0) {
+            let paytypes = filters.paytypes.map((p) => `paytypeId = '${p}'`);
+            formattedFilters = [...formattedFilters, `(${paytypes.join(" OR ")})`];
+        }
+
+        if (filters.categories.length > 0) {
+            let categories = filters.categories.map((c) => `categoryId = '${c}'`);
+            formattedFilters = [...formattedFilters, `(${categories.join(" OR ")})`];
+        }
+
+        if (filters.thirdparties.length > 0) {
+            let thirdparties = filters.thirdparties.map((t) => `thirdpartyId = '${t}'`);
+            formattedFilters = [...formattedFilters, `(${thirdparties.join(" OR ")})`];
+        }
+
         const db = new Db(getWalletFile(email));
-        const amount = db
+        const operations = db
             .open()
             .then((conn) => {
                 let opeResult = [];
                 conn.each(
-                    "SELECT * FROM Operations WHERE toWalletItemId = :walletId",
+                    "SELECT * FROM Operations WHERE toWalletItemId = :walletId AND " + formattedFilters.join(" AND "),
                     {
                         ":walletId": walletItemId
                     },
@@ -228,7 +261,7 @@ const getOperations = (data) => {
 
                 let trfResult = [];
                 conn.each(
-                    "SELECT * FROM Operations WHERE fromWalletItemId = :walletId",
+                    "SELECT * FROM Operations WHERE fromWalletItemId = :walletId AND " + formattedFilters.join(" AND "),
                     {
                         ":walletId": walletItemId
                     },
@@ -236,6 +269,8 @@ const getOperations = (data) => {
                         if (row) trfResult.push({ ...row, amount: row.amount < 0 ? -row.amount : row.amount });
                     }
                 );
+
+                db.close();
 
                 return [...opeResult, ...trfResult];
             })
@@ -248,7 +283,44 @@ const getOperations = (data) => {
                 db.close();
             });
 
-        return amount;
+        return operations;
+    } catch (err) {
+        console.error(err);
+        return 0.0;
+    }
+};
+
+const deleteOperations = (data) => {
+    try {
+        const { email, walletItems } = data;
+
+        const allItems = walletItems.map((item) => item.id);
+
+        const db = new Db(getWalletFile(email));
+        const deleted = db
+            .open()
+            .then((conn) => {
+                const query = `DELETE FROM Operations WHERE (${allItems
+                    .map((k, idx) => `id = :id${idx}`)
+                    .join(" OR ")})`;
+                const values = Object.fromEntries(Object.keys(allItems).map((k, idx) => [[`:id${idx}`], allItems[k]]));
+
+                conn.run(query, values);
+                db.save();
+                db.close();
+
+                return true;
+            })
+            .catch((err) => {
+                db.close();
+                console.error("sql", err);
+                return false;
+            })
+            .finally(() => {
+                db.close();
+            });
+
+        return deleted;
     } catch (err) {
         console.error(err);
         return 0.0;
@@ -266,5 +338,6 @@ module.exports = {
     saveWalletMetas,
     saveOperation,
     getAmountAt,
-    getOperations
+    getOperations,
+    deleteOperations
 };
