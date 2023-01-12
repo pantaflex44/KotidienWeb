@@ -23,33 +23,50 @@ import {
 import {
     IconAlien,
     IconDeviceFloppy,
+    IconHelp,
+    IconInfoCircle,
+    IconKeyboard,
     IconMoonStars,
     IconPlugConnectedX,
     IconSettings,
     IconSettings2,
+    IconSos,
     IconSun
 } from "@tabler/icons";
 
 import { AppContext } from "./AppProvider";
 import SettingsModal from "./SettingsModal";
+import ShortcutsModal from "./ShortcutsModal";
+import AboutModal from "./AboutModal";
+import { openConfirmModal } from "@mantine/modals";
 
 const Layout = ({ navbar = { header: null, content: null }, children }) => {
     const app = useContext(AppContext);
 
     const [settingsOpened, setSettingsOpened] = useState(false);
+    const [shortcutsOpened, setShortcutsOpened] = useState(false);
+    const [aboutOpened, setAboutOpened] = useState(false);
 
     const memoizedSettings = useMemo(
         () => ({
-            csvSeparatorsColumns: app.wallet ? app.wallet.params?.csv?.separators?.columns || ";" : ";",
-            csvSeparatorsDecimals: app.wallet ? app.wallet.params?.csv?.separators?.decimals || "," : ",",
-            showResumeBox: app.wallet ? app.wallet.params?.views?.showResumeBox !== false || true : true,
-            extendOperations: app.wallet ? app.wallet.params?.views?.extendOperations !== false || true : true
+            csv_separators_columns: app.wallet ? app.wallet.params?.csv?.separators?.columns || ";" : ";",
+            csv_separators_decimals: app.wallet ? app.wallet.params?.csv?.separators?.decimals || "," : ",",
+            views_showResumeBox: app.wallet ? (app.wallet.params?.views?.showResumeBox === false ? false : true) : true,
+            views_extendOperations: app.wallet
+                ? app.wallet.params?.views?.extendOperations === false
+                    ? false
+                    : true
+                : true
         }),
         [app.wallet?.params]
     );
 
     useEffect(() => {
-        if (app.idle) setSettingsOpened(false);
+        if (app.idle) {
+            setSettingsOpened(false);
+            setShortcutsOpened(false);
+            setAboutOpened(false);
+        }
     }, [app.idle]);
 
     return (
@@ -65,10 +82,12 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                             }}
                             settings={memoizedSettings}
                             onChange={(newSettings) => {
-                                console.log(newSettings);
                                 app.setSettings(newSettings);
                             }}
                         />
+
+                        <ShortcutsModal visible={shortcutsOpened} onClose={() => setShortcutsOpened(false)} />
+                        <AboutModal visible={aboutOpened} onClose={() => setAboutOpened(false)} />
 
                         <AppShell
                             footer={
@@ -116,7 +135,7 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                             </Group>
                                         }
                                         {app.wallet && (
-                                            <Group position={"right"} spacing={"md"}>
+                                            <Group position={"right"} spacing={"xs"}>
                                                 <Divider orientation={"vertical"} />
                                                 {app.walletToolbarItems.length > 0 && (
                                                     <Menu shadow={"sm"} width={300} withArrow={true}>
@@ -148,7 +167,48 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                                             <Menu.Divider />
                                                             <Menu.Item
                                                                 color={"teal.9"}
-                                                                onClick={() => setSettingsOpened(true)}
+                                                                onClick={() => {
+                                                                    if (app.expectedSaving) {
+                                                                        openConfirmModal({
+                                                                            title: "Votre portefeuille a été modifié",
+                                                                            children: (
+                                                                                <>
+                                                                                    <Text
+                                                                                        size="sm"
+                                                                                        mb="lg"
+                                                                                        data-autofocus
+                                                                                    >
+                                                                                        Avant de modifier les paramètres
+                                                                                        généraux de l'application, vous
+                                                                                        devez enregistrer les
+                                                                                        modifications précédentes.
+                                                                                    </Text>
+                                                                                    <Text size="sm" mb="lg">
+                                                                                        Souhaitez-vous enregistrer votre
+                                                                                        portefeuille?
+                                                                                    </Text>
+                                                                                </>
+                                                                            ),
+                                                                            withCloseButton: false,
+                                                                            closeOnEscape: false,
+                                                                            closeOnClickOutside: false,
+                                                                            centered: true,
+                                                                            overlayColor:
+                                                                                app.theme.colorScheme === "dark"
+                                                                                    ? app.theme.colors.dark[9]
+                                                                                    : app.theme.colors.gray[2],
+                                                                            overlayOpacity: 0.55,
+                                                                            overlayBlur: 3,
+                                                                            onConfirm: () => {
+                                                                                app.save();
+                                                                                setSettingsOpened(true);
+                                                                            },
+                                                                            onCancel: () => {}
+                                                                        });
+                                                                    } else {
+                                                                        setSettingsOpened(true);
+                                                                    }
+                                                                }}
                                                                 icon={<IconSettings size={14} stroke={1.5} />}
                                                             >
                                                                 Paramètres généraux
@@ -156,7 +216,52 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                                         </Menu.Dropdown>
                                                     </Menu>
                                                 )}
-
+                                                <Menu shadow={"sm"} width={300} withArrow={true}>
+                                                    <Menu.Target>
+                                                        <Button variant={"subtle"} color={"dark.9"} m={0} px={"xs"}>
+                                                            <Group spacing={4}>
+                                                                <IconHelp size={18} stroke={1.5} />
+                                                                <Text fw={400} size={"xs"}>
+                                                                    Aide
+                                                                </Text>
+                                                            </Group>
+                                                        </Button>
+                                                    </Menu.Target>
+                                                    <Menu.Dropdown>
+                                                        <Menu.Label>Aide et Informations</Menu.Label>
+                                                        {window && (
+                                                            <Menu.Item
+                                                                color={"dark.9"}
+                                                                onClick={() => {
+                                                                    window
+                                                                        .open(
+                                                                            "https://github.com/pantaflex44/KotidienWeb/",
+                                                                            "_blank"
+                                                                        )
+                                                                        .focus();
+                                                                }}
+                                                                icon={<IconSos size={14} stroke={1.5} />}
+                                                            >
+                                                                Aide en ligne
+                                                            </Menu.Item>
+                                                        )}
+                                                        <Menu.Item
+                                                            color={"dark.9"}
+                                                            onClick={() => setShortcutsOpened(true)}
+                                                            icon={<IconKeyboard size={14} stroke={1.5} />}
+                                                        >
+                                                            Raccourcis clavier
+                                                        </Menu.Item>
+                                                        <Menu.Divider />
+                                                        <Menu.Item
+                                                            color={"dark.9"}
+                                                            onClick={() => setAboutOpened(true)}
+                                                            icon={<IconInfoCircle size={14} stroke={1.5} />}
+                                                        >
+                                                            A propos de...
+                                                        </Menu.Item>
+                                                    </Menu.Dropdown>
+                                                </Menu>
                                                 <Divider orientation={"vertical"} />
                                                 {app.expectedSaving && (
                                                     <Tooltip label={"Enregistrer"}>

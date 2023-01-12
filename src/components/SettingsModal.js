@@ -1,8 +1,8 @@
 import React, { useContext, useEffect, useState } from "react";
 
-import { Button, Group, Modal, Stack, Tabs } from "@mantine/core";
+import { Button, Divider, Grid, Group, Modal, Stack, Switch, Tabs, TextInput, Title } from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { IconArrowsDownUp, IconListDetails, IconX } from "@tabler/icons";
+import { Icon123, IconArrowsDownUp, IconColumns, IconListDetails, IconX } from "@tabler/icons";
 
 import { AppContext } from "./AppProvider";
 import { showNotification } from "@mantine/notifications";
@@ -98,47 +98,34 @@ function SettingsModal({
 
                     <Tabs.Panel value="impexp" py="md">
                         <Stack spacing={"md"} mb={"md"}>
-                            {/*<TextInput
+                            <Title order={5}>Format CSV</Title>
+                            <TextInput
                                 placeholder=""
-                                label="Dénomination"
-                                description="Renommez votre portefeuille pour mieux l'identifier."
-                                withAsterisk={true}
-                                icon={<IconTextSize size={14} />}
-                                {...propsForm.getInputProps("name")}
+                                label="Séparateur de colones"
+                                description="Les fichiers CSV utilisent un caractère spécial pour reconnaitre les colones de données."
+                                icon={<IconColumns size={14} />}
+                                {...propsForm.getInputProps("csv_separators_columns")}
                             />
-                            <Textarea
+                            <TextInput
                                 placeholder=""
-                                label="Notes"
-                                description="Quelques informations utiles, des notes importantes, etc."
-                                icon={<IconPencil size={14} />}
-                                autosize={true}
-                                minRows={4}
-                                maxRows={12}
-                                {...propsForm.getInputProps("note")}
-    />*/}
+                                label="Séparateur des décimales"
+                                description="Caractère séparateur de décimales pour les nombres à virgule."
+                                icon={<Icon123 size={14} />}
+                                {...propsForm.getInputProps("csv_separators_decimals")}
+                            />
                         </Stack>
                     </Tabs.Panel>
 
                     <Tabs.Panel value="opelist" py="md">
                         <Stack spacing={"md"} mb={"md"}>
-                            {/*<TextInput
-                                placeholder=""
-                                label="Dénomination"
-                                description="Renommez votre portefeuille pour mieux l'identifier."
-                                withAsterisk={true}
-                                icon={<IconTextSize size={14} />}
-                                {...propsForm.getInputProps("name")}
+                            <Switch
+                                label={"Afficher la boite de résumé"}
+                                {...propsForm.getInputProps("views_showResumeBox", { type: "checkbox" })}
                             />
-                            <Textarea
-                                placeholder=""
-                                label="Notes"
-                                description="Quelques informations utiles, des notes importantes, etc."
-                                icon={<IconPencil size={14} />}
-                                autosize={true}
-                                minRows={4}
-                                maxRows={12}
-                                {...propsForm.getInputProps("note")}
-    />*/}
+                            <Switch
+                                label={"Par défaut, étendre toutes les opérations"}
+                                {...propsForm.getInputProps("views_extendOperations", { type: "checkbox" })}
+                            />
                         </Stack>
                     </Tabs.Panel>
                 </Tabs>

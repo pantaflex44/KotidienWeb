@@ -33,7 +33,7 @@ import Currency from "./Currency";
 import { getDatePattern, strToColor } from "../../tools";
 import dayjs from "dayjs";
 import { getAmountAt } from "../wrappers/wallet_api";
-import { getHotkeyHandler, useHotkeys } from "@mantine/hooks";
+import { useHotkeys } from "@mantine/hooks";
 
 function OpeList({
     walletItem,
@@ -65,7 +65,9 @@ function OpeList({
                             ...(current[walletItem.id] || {}),
                             [a.date]:
                                 (current[walletItem.id] && current[walletItem.id][a.date]) ||
-                                app.wallet.params?.views?.extendOperations === true
+                                app.wallet.params?.views?.extendOperations
+                                    ? app.wallet.params?.views?.extendOperations === true
+                                    : true
                         }
                     }));
 

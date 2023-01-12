@@ -1,7 +1,7 @@
 import packagejson from "../../package.json";
 
 import React, { useContext, useEffect } from "react";
-import { ActionIcon, Container, Divider, Grid, Group, Space, Stack, Text, ThemeIcon, Tooltip } from "@mantine/core";
+import { Container, Grid, Text } from "@mantine/core";
 
 import { AppContext } from "../components/AppProvider";
 
@@ -9,7 +9,6 @@ import Metas from "../components/Metas";
 import LoginForm from "../components/LoginForm";
 import PreRegisterForm from "../components/PreRegisterForm";
 import Dashboard from "../components/Dashboard";
-import { IconBrandGithub, IconHelp, IconWorld } from "@tabler/icons";
 
 const Home = () => {
     const app = useContext(AppContext);

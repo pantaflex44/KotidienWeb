@@ -190,6 +190,7 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
 
         const apply = () => {
             closeAllModals();
+            setExpectedSaving(false);
             setWallet(null);
             setCurrentPassword(null);
             closeAllModals();
@@ -329,7 +330,9 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
             ...old,
             params: { ...old.params, ...settings }
         }));
+
         setExpectedSaving(true);
+        save();
     };
 
     const setView = (walletItemId, newView) => {
