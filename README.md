@@ -1,6 +1,9 @@
 [EN COURS DE DEVELOPPEMENT]
 
 # Kotidien
+
+![Kotidien](https://a.fsdn.com/allura/p/kotidien/icon?1614505402?&w=90)
+
 ### Finances personnelles assistées par ordinateur.
 
 Kotidien est une application dédiée à la gestion de votre argent. Comptes bancaires, cartes de paiements autonomes, et portefeuille d'espèces. Totalement libre et gratuite, elle vous permets de tenir vos comptes d'une main de fer. Écrite en Javascript, utilisant les technologies modernes telles NextJs et React.
@@ -12,7 +15,7 @@ La complétion automatique des différentes informations permet une saisie plus 
 
 ## Informations
 
-Copyleft (c)2022-2023 Christophe LEMOINE
+Copyright (c)2022-2023 Christophe LEMOINE
 Licence MIT
 
 https://github.com/pantaflex44/KotidienWeb
@@ -24,15 +27,32 @@ Kotidien est sous licence libre et open-source. Cette licence vous permet de red
 ## Captures d'écran
 
 ![Accueil](./screenshots/screenshot-home.png "Accueil")
+*Accueil*
+
+---
 
 ![Nouveau portefeuille](./screenshots/screenshot-register.png "Nouveau portefeuille")
+*Nouveau portefeuille*
+
+---
 
 ![Elément financier](./screenshots/screenshot-wallet.png "Elément financier")
+*Elément financier*
+
+---
 
 ![Catégories](./screenshots/screenshot-categories.png "Catégories")
+*Les catégories*
 
-![Liste des opérations](./screenshots/screenshot-walletitem.png "Liste des opérations")
+---
 
 ![Nouvelle opération](./screenshots/screenshot-newope.png "Nouvelle opération")
+*Nouvelle opération*
+
+---
 
 ![Liste des opérations](./screenshots/screenshot-opelist.png "Liste des opérations")
+*Liste des opérations*
+
+---
+

@@ -1,6 +1,6 @@
 import packagejson from "../../package.json";
 
-import React, { useCallback, useContext, useEffect, useState } from "react";
+import React, { useCallback, useContext, useEffect, useLayoutEffect, useState } from "react";
 
 import {
     Box,
@@ -50,6 +50,35 @@ function OpeList({
     const [totalAmounts, setTotalAmounts] = useState({});
     const [collapsible, setCollapsible] = useState({});
 
+    const setInitialCollapseState = (date) => {
+        const defaultState =
+            app.wallet.params?.views?.extendOperations !== null &&
+            app.wallet.params?.views?.extendOperations !== undefined
+                ? app.wallet.params.views.extendOperations === true
+                : true;
+
+        setCollapsible((current) => {
+            const state =
+                current[walletItem.id] === null || current[walletItem.id] === undefined
+                    ? defaultState
+                    : current[walletItem.id][date] === null || current[walletItem.id][date] === undefined
+                    ? defaultState
+                    : current[walletItem.id][date] === true;
+
+            const newList = {
+                ...current,
+                [walletItem.id]: {
+                    ...(current[walletItem.id] === null || current[walletItem.id] === undefined
+                        ? {}
+                        : current[walletItem.id]),
+                    [date]: state
+                }
+            };
+
+            return newList;
+        });
+    };
+
     const sortItems = useCallback(
         (items) => {
             const si = items
@@ -59,21 +88,12 @@ function OpeList({
                         new Date(Date.parse(a.date.replace(/-/g, "/")))
                 )
                 .reduce((r, a) => {
-                    setCollapsible((current) => ({
-                        ...current,
-                        [walletItem.id]: {
-                            ...(current[walletItem.id] || {}),
-                            [a.date]:
-                                (current[walletItem.id] && current[walletItem.id][a.date]) ||
-                                app.wallet.params?.views?.extendOperations
-                                    ? app.wallet.params?.views?.extendOperations === true
-                                    : true
-                        }
-                    }));
-
                     r[a.date] = r[a.date] || [];
                     r[a.date].push(a);
                     r[a.date] = r[a.date].sort((a, b) => (a.id < b.id ? 1 : -1));
+
+                    setInitialCollapseState(a.date);
+
                     return r;
                 }, Object.create(null));
 
@@ -89,12 +109,12 @@ function OpeList({
                 });
             });
         },
-        [items]
+        [items, app.wallet.params?.views?.extendOperations]
     );
 
     useEffect(() => {
         sortItems(items);
-    }, [items]);
+    }, [items, app.wallet.params?.views?.extendOperations]);
 
     const collapseAll = () => {
         setCollapsible((current) => ({

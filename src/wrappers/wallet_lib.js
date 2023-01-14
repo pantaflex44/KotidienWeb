@@ -47,7 +47,8 @@ const createWallet = ({ email, password, name, note, walletItems, categories, pa
                         separators: {
                             columns: ";",
                             decimals: ","
-                        }
+                        },
+                        dateformat: "DD/MM/YYYY"
                     },
                     filters: {
                         walletItemView: {}

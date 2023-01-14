@@ -49,13 +49,34 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
 
     const memoizedSettings = useMemo(
         () => ({
-            csv_separators_columns: app.wallet ? app.wallet.params?.csv?.separators?.columns || ";" : ";",
-            csv_separators_decimals: app.wallet ? app.wallet.params?.csv?.separators?.decimals || "," : ",",
-            views_showResumeBox: app.wallet ? (app.wallet.params?.views?.showResumeBox === false ? false : true) : true,
+            csv_separators_columns: app.wallet
+                ? app.wallet.params?.csv?.separators?.columns === null ||
+                  app.wallet.params?.csv?.separators?.columns === undefined
+                    ? ";"
+                    : app.wallet.params.csv.separators.columns
+                : ";",
+            csv_separators_decimals: app.wallet
+                ? app.wallet.params?.csv?.separators?.decimals === null ||
+                  app.wallet.params?.csv?.separators?.decimals === undefined
+                    ? ","
+                    : app.wallet.params?.csv?.separators?.decimals
+                : ",",
+            csv_dateformat: app.wallet
+                ? app.wallet.params?.csv?.dateformat === null || app.wallet.params?.csv?.dateformat === undefined
+                    ? "DD/MM/YYYY"
+                    : app.wallet.params?.csv?.dateformat
+                : "DD/MM/YYYY",
+            views_showResumeBox: app.wallet
+                ? app.wallet.params?.views?.showResumeBox === null ||
+                  app.wallet.params?.views?.showResumeBox === undefined
+                    ? true
+                    : app.wallet.params.views.showResumeBox === true
+                : true,
             views_extendOperations: app.wallet
-                ? app.wallet.params?.views?.extendOperations === false
-                    ? false
-                    : true
+                ? app.wallet.params?.views?.extendOperations === null ||
+                  app.wallet.params?.views?.extendOperations === undefined
+                    ? true
+                    : app.wallet.params.views.extendOperations === true
                 : true
         }),
         [app.wallet?.params]

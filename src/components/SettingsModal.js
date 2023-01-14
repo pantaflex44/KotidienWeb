@@ -1,18 +1,43 @@
+import packagejson from "../../package.json";
+
 import React, { useContext, useEffect, useState } from "react";
 
-import { Button, Divider, Grid, Group, Modal, Stack, Switch, Tabs, TextInput, Title } from "@mantine/core";
+import {
+    Button,
+    Collapse,
+    Divider,
+    Grid,
+    Group,
+    Modal,
+    Stack,
+    Switch,
+    Tabs,
+    Text,
+    TextInput,
+    Title
+} from "@mantine/core";
 import { useForm } from "@mantine/form";
-import { Icon123, IconArrowsDownUp, IconColumns, IconListDetails, IconX } from "@tabler/icons";
+import {
+    Icon123,
+    IconArrowsDownUp,
+    IconCalendarMinus,
+    IconCalendarStats,
+    IconColumns,
+    IconListDetails,
+    IconX
+} from "@tabler/icons";
 
 import { AppContext } from "./AppProvider";
 import { showNotification } from "@mantine/notifications";
+import dayjs from "dayjs";
 
 function SettingsModal({
     settings = {
         views_showResumeBox: false,
         views_extendOperations: false,
         csv_separators_columns: ";",
-        csv_separators_decimals: ","
+        csv_separators_decimals: ",",
+        csv_dateformat: "DD/MM/YYYY"
     },
     visible = false,
     initialValue = false,
@@ -21,16 +46,28 @@ function SettingsModal({
 }) {
     const app = useContext(AppContext);
     const [opened, setOpened] = useState(initialValue);
+    const [csvDateformatDocopened, setCsvDateformatDocopened] = useState(false);
 
     const propsForm = useForm({
         initialValues: {
             views_showResumeBox: settings.views_showResumeBox,
             views_extendOperations: settings.views_extendOperations,
             csv_separators_columns: settings.csv_separators_columns,
-            csv_separators_decimals: settings.csv_separators_decimals
+            csv_separators_decimals: settings.csv_separators_decimals,
+            csv_dateformat: settings.csv_dateformat
         },
         validate: (values) => {
-            return {};
+            return {
+                csv_separators_columns:
+                    values.csv_separators_columns.trim().length === 1
+                        ? null
+                        : "Le séparateur de colones doit contenir 1 caractère.",
+                csv_separators_decimals:
+                    values.csv_separators_decimals.trim().length === 1
+                        ? null
+                        : "Le séparateur des décimales doit contenir 1 caractère.",
+                csv_dateformat: values.csv_dateformat.trim().length > 0 ? null : "Format de la date incorrect."
+            };
         }
     });
 
@@ -49,7 +86,8 @@ function SettingsModal({
                         views_showResumeBox: propsForm.values.views_showResumeBox,
                         views_extendOperations: propsForm.values.views_extendOperations,
                         csv_separators_columns: propsForm.values.csv_separators_columns,
-                        csv_separators_decimals: propsForm.values.csv_separators_decimals
+                        csv_separators_decimals: propsForm.values.csv_separators_decimals,
+                        csv_dateformat: propsForm.values.csv_dateformat
                     };
 
                     onChange(np);
@@ -100,30 +138,149 @@ function SettingsModal({
                         <Stack spacing={"md"} mb={"md"}>
                             <Title order={5}>Format CSV</Title>
                             <TextInput
-                                placeholder=""
+                                placeholder=";"
                                 label="Séparateur de colones"
-                                description="Les fichiers CSV utilisent un caractère spécial pour reconnaitre les colones de données."
+                                description={
+                                    <Group position={"apart"} style={{ flexWrap: "nowrap" }}>
+                                        <Text lineClamp={1}>
+                                            Les fichiers CSV utilisent un caractère spécial pour reconnaitre les colones
+                                            de données.
+                                        </Text>
+                                        <Text
+                                            align={"right"}
+                                            variant={"link"}
+                                            style={{ cursor: "pointer", minWidth: "50px" }}
+                                            onClick={() =>
+                                                propsForm.setValues((v) => ({
+                                                    ...v,
+                                                    csv_separators_columns: ";"
+                                                }))
+                                            }
+                                        >
+                                            défaut
+                                        </Text>
+                                    </Group>
+                                }
                                 icon={<IconColumns size={14} />}
                                 {...propsForm.getInputProps("csv_separators_columns")}
                             />
                             <TextInput
-                                placeholder=""
+                                placeholder=","
                                 label="Séparateur des décimales"
-                                description="Caractère séparateur de décimales pour les nombres à virgule."
+                                description={
+                                    <Group position={"apart"} style={{ flexWrap: "nowrap" }}>
+                                        <Text lineClamp={1}>
+                                            Caractère séparateur de décimales pour les nombres à virgule.
+                                        </Text>
+                                        <Text
+                                            align={"right"}
+                                            variant={"link"}
+                                            style={{ cursor: "pointer", minWidth: "50px" }}
+                                            onClick={() =>
+                                                propsForm.setValues((v) => ({
+                                                    ...v,
+                                                    csv_separators_decimals: ","
+                                                }))
+                                            }
+                                        >
+                                            défaut
+                                        </Text>
+                                    </Group>
+                                }
                                 icon={<Icon123 size={14} />}
                                 {...propsForm.getInputProps("csv_separators_decimals")}
+                            />
+                            <TextInput
+                                placeholder="DD/MMM/YYYY"
+                                label="Format de la date"
+                                description={
+                                    <Stack spacing={"xs"}>
+                                        <Group position={"apart"} style={{ flexWrap: "nowrap" }}>
+                                            <Text lineClamp={1}>
+                                                eg:{" "}
+                                                {dayjs()
+                                                    .locale(packagejson.i18n.defaultLocale)
+                                                    .format(propsForm.values["csv_dateformat"])}
+                                            </Text>
+                                            <Text
+                                                align={"center"}
+                                                variant={"link"}
+                                                style={{ cursor: "pointer", minWidth: "90px" }}
+                                                onClick={() => setCsvDateformatDocopened((old) => !old)}
+                                            >
+                                                documentation
+                                            </Text>
+                                            <Text
+                                                align={"right"}
+                                                variant={"link"}
+                                                style={{ cursor: "pointer", minWidth: "50px" }}
+                                                onClick={() =>
+                                                    propsForm.setValues((v) => ({ ...v, csv_dateformat: "DD/MM/YYYY" }))
+                                                }
+                                            >
+                                                défaut
+                                            </Text>
+                                        </Group>
+                                        <Collapse in={csvDateformatDocopened} my={"xs"}>
+                                            <Stack spacing={0}>
+                                                <Group spacing={"xs"}>
+                                                    <div style={{ width: "80px" }}>
+                                                        <Text fw={500}>D</Text>
+                                                    </div>
+                                                    <Text size={"xs"}>(1-31) jour du mois</Text>
+                                                </Group>
+                                                <Group spacing={"xs"}>
+                                                    <div style={{ width: "80px" }}>
+                                                        <Text fw={500}>DD</Text>
+                                                    </div>
+                                                    <Text size={"xs"}>(01-31) jour du mois sur 2 chiffres</Text>
+                                                </Group>
+                                                <Group spacing={"xs"}>
+                                                    <div style={{ width: "80px" }}>
+                                                        <Text fw={500}>M</Text>
+                                                    </div>
+                                                    <Text size={"xs"}>(1-12) numéro du mois</Text>
+                                                </Group>
+                                                <Group spacing={"xs"}>
+                                                    <div style={{ width: "80px" }}>
+                                                        <Text fw={500}>MM</Text>
+                                                    </div>
+                                                    <Text size={"xs"}>(01-12) numéro du mois sur 2 chiffres</Text>
+                                                </Group>
+                                                <Group spacing={"xs"}>
+                                                    <div style={{ width: "80px" }}>
+                                                        <Text fw={500}>YY</Text>
+                                                    </div>
+                                                    <Text size={"xs"}>(22 / 23) année sur 2 chiffres</Text>
+                                                </Group>
+                                                <Group spacing={"xs"}>
+                                                    <div style={{ width: "80px" }}>
+                                                        <Text fw={500}>YYYY</Text>
+                                                    </div>
+                                                    <Text size={"xs"}>(2022 / 2023) année sur 4 chiffres</Text>
+                                                </Group>
+                                            </Stack>
+                                        </Collapse>
+                                    </Stack>
+                                }
+                                icon={<IconCalendarMinus size={14} />}
+                                {...propsForm.getInputProps("csv_dateformat")}
                             />
                         </Stack>
                     </Tabs.Panel>
 
                     <Tabs.Panel value="opelist" py="md">
                         <Stack spacing={"md"} mb={"md"}>
+                            <Title order={5}>Affichage</Title>
                             <Switch
+                                mt={"xs"}
                                 label={"Afficher la boite de résumé"}
+                                description={"Soldes prévisionnels, etc."}
                                 {...propsForm.getInputProps("views_showResumeBox", { type: "checkbox" })}
                             />
                             <Switch
                                 label={"Par défaut, étendre toutes les opérations"}
+                                description={"Paramètre appliqué à chaque ouverture de votre portefeuille."}
                                 {...propsForm.getInputProps("views_extendOperations", { type: "checkbox" })}
                             />
                         </Stack>

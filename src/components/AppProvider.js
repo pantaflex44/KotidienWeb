@@ -326,10 +326,13 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
             });
         });
 
-        setWallet((old) => ({
-            ...old,
-            params: { ...old.params, ...settings }
-        }));
+        setWallet((old) => {
+            const n = {
+                ...old,
+                params: { ...old.params, ...settings }
+            };
+            return n;
+        });
 
         setExpectedSaving(true);
         save();

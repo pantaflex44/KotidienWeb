@@ -12,6 +12,7 @@ import {
     Checkbox,
     Divider,
     Group,
+    Menu,
     Modal,
     NumberInput,
     Select,
@@ -38,6 +39,9 @@ import {
     IconCategory,
     IconCurrencyEuro,
     IconEdit,
+    IconFileExport,
+    IconFileImport,
+    IconFileText,
     IconFilter,
     IconListDetails,
     IconPlus,
@@ -939,6 +943,44 @@ function Wallet({
                                         )}
                                     </ActionIcon>
                                 </Tooltip>
+                                <Divider orientation={"vertical"} />
+                                <Menu shadow="md" width={200} disabled={loading} withArrow={true} withinPortal={true}>
+                                    <Menu.Target>
+                                        <Tooltip label={"Importations"} withinPortal={true} withArrow={true}>
+                                            <ActionIcon size="md" variant={"subtle"} color={"dark"} disabled={loading}>
+                                                <IconFileImport size={16} stroke={2} />
+                                            </ActionIcon>
+                                        </Tooltip>
+                                    </Menu.Target>
+                                    <Menu.Dropdown>
+                                        <Menu.Label>Importer au format</Menu.Label>
+                                        <Menu.Item icon={<IconFileText size={14} />}>CSV</Menu.Item>
+                                    </Menu.Dropdown>
+                                </Menu>
+                                <Menu
+                                    shadow="md"
+                                    width={200}
+                                    disabled={loading || opeListItems.length === 0}
+                                    withArrow={true}
+                                    withinPortal={true}
+                                >
+                                    <Menu.Target>
+                                        <Tooltip label={"Exportations"} withinPortal={true} withArrow={true}>
+                                            <ActionIcon
+                                                size="md"
+                                                variant={"subtle"}
+                                                color={"dark"}
+                                                disabled={loading || opeListItems.length === 0}
+                                            >
+                                                <IconFileExport size={16} stroke={2} />
+                                            </ActionIcon>
+                                        </Tooltip>
+                                    </Menu.Target>
+                                    <Menu.Dropdown>
+                                        <Menu.Label>Exporter au format</Menu.Label>
+                                        <Menu.Item icon={<IconFileText size={14} />}>CSV</Menu.Item>
+                                    </Menu.Dropdown>
+                                </Menu>
                             </Group>
 
                             {useMemo(
