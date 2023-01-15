@@ -134,6 +134,60 @@ function OpeList({
         }));
     };
 
+    const selectFirstItem = () => {
+        if (!loading && Object.keys(sortedItems).length > 0 && onSelect) {
+            const firstItem = sortedItems[Object.keys(sortedItems)[0]][0];
+            onSelect(firstItem.id);
+        }
+    };
+
+    const selectLastItem = () => {
+        if (!loading && Object.keys(sortedItems).length > 0 && onSelect) {
+            const keys = Object.keys(sortedItems);
+            const lastKey = keys[keys.length - 1];
+            const items = sortedItems[lastKey];
+            const lastItem = items[items.length - 1];
+            onSelect(lastItem.id);
+        }
+    };
+
+    const flattenSortedItems = () => {
+        const list = [];
+        Object.keys(sortedItems).map((k) => {
+            sortedItems[k].map((i) => {
+                list.push(i);
+            });
+        });
+        return list;
+    };
+
+    const selectNextItem = () => {
+        if (!loading && Object.keys(sortedItems).length > 0 && onSelect) {
+            const flattedItems = flattenSortedItems();
+            const index = flattedItems.findIndex((o) => o.id === selected[0]);
+            if (index < flattedItems.length - 1) onSelect(flattedItems[index + 1].id);
+        }
+    };
+
+    const selectPrevItem = () => {
+        if (!loading && Object.keys(sortedItems).length > 0 && onSelect) {
+            const flattedItems = flattenSortedItems();
+            const index = flattedItems.findIndex((o) => o.id === selected[0]);
+            if (index > 0) onSelect(flattedItems[index - 1].id);
+        }
+    };
+
+    const selectAll = () => {
+        if (!loading && Object.keys(sortedItems).length > 0 && onSelect) {
+            const flattedItems = flattenSortedItems();
+            onSelect(flattedItems.map((o) => o.id));
+        }
+    };
+
+    const unselectAll = () => {
+        if (!loading && onUnselectAll) onUnselectAll();
+    };
+
     useHotkeys([
         [
             "mod+alt+ArrowDown",
@@ -146,7 +200,32 @@ function OpeList({
             () => {
                 collapseAll();
             }
-        ]
+        ],
+        [
+            "ArrowDown",
+            () => {
+                if (selected.length === 0) {
+                    selectLastItem();
+                } else {
+                    selectNextItem();
+                }
+            }
+        ],
+        [
+            "ArrowUp",
+            () => {
+                if (selected.length === 0) {
+                    selectFirstItem();
+                } else {
+                    selectPrevItem();
+                }
+            }
+        ],
+        ,
+        ["ArrowLeft", () => selectFirstItem()],
+        ["ArrowRight", () => selectLastItem()],
+        ["mod+alt+A", () => selectAll()],
+        ["Escape", () => unselectAll()]
     ]);
 
     return (

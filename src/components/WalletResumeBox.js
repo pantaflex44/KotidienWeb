@@ -22,7 +22,7 @@ function WalletResumeBox({ item }) {
     }, [item]);
 
     useLayoutEffect(() => {
-        localStorage.setItem(`${item.id}_resumebox_panel`, defaultPanel);
+        if (app.rgpdAgreed()) localStorage.setItem(`${item.id}_resumebox_panel`, defaultPanel);
     }, [item, defaultPanel]);
 
     return (

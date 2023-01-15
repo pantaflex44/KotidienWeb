@@ -82,6 +82,20 @@ const createWallet = ({ email, password, name, note, walletItems, categories, pa
     }
 };
 
+const deleteWallet = (email) => {
+    try {
+        if (!walletExists(email)) return false;
+
+        const walletPath = getWallet(email);
+        fs.rmSync(walletPath, { recursive: true });
+
+        return true;
+    } catch (err) {
+        console.error(err);
+        return false;
+    }
+};
+
 const openWalletMetas = ({ email, password }) => {
     try {
         if (!walletExists(email)) return null;
@@ -340,5 +354,6 @@ module.exports = {
     saveOperation,
     getAmountAt,
     getOperations,
-    deleteOperations
+    deleteOperations,
+    deleteWallet
 };

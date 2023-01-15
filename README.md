@@ -44,6 +44,33 @@ Date de création 11/11/2022
 
 Kotidien est sous licence libre et open-source. Cette licence vous permet de redistribuer, modifier et améliorer Kotidien à votre guise. Toute modification, redistribution ou amélioration devra citer l'auteur original dans le respect de la licence.
 
+## Crédits et Participations
+
+    Auteurs: 
+    --------
+    - Christophe LEMOINE - pantaflex at tuta point io
+
+    API:
+    ----
+    - Christophe LEMOINE - pantaflex at tuta point io
+
+    UI/UX:
+    ------
+    - Christophe LEMOINE - pantaflex at tuta point io
+
+    Logos:
+    ------
+    - Christophe LEMOINE - pantaflex at tuta point io
+
+    Traductions:
+    ------------
+        [FR]
+            - Christophe LEMOINE - pantaflex at tuta point io
+
+## Librairies utilisées
+
+[ReactJs](https://fr.reactjs.org/) , [Mantine](https://mantine.dev/) , [Tabler Icons](https://tabler-icons.io/) , [Webpack](https://webpack.js.org/) , [BabelJs](https://babeljs.io/) , [NodeJs](https://nodejs.org/fr/) , [ExpressJs](https://expressjs.com/fr/) , [Sql.js](https://github.com/sql-js/sql.js/) , [DayJs](https://day.js.org/) , [jsPdf](https://github.com/parallax/jsPDF), [ofx](https://github.com/chilts/node-ofx)
+
 ## Captures d'écran
 
 ![Accueil](./screenshots/screenshot-home.png "Accueil")

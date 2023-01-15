@@ -26,10 +26,13 @@
     {
         "path": "/api/wallet/getoperations",
         "controller": "./controllers/wallet/getoperations.js"
-    }
-    ,
+    },
     {
         "path": "/api/wallet/deleteoperations",
         "controller": "./controllers/wallet/deleteoperations.js"
+    },
+    {
+        "path": "/api/wallet/deletewallet",
+        "controller": "./controllers/wallet/deletewallet.js"
     }
 ]

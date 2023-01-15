@@ -64,3 +64,11 @@ export const deleteOperations = async (email, walletItems) => {
     });
     return { deleted: false, errorCode: 0, errorMessage: null, ...response.data };
 };
+
+export const deleteWallet = async (data) => {
+    const caller = api("/wallet/deletewallet", "POST");
+    const response = await caller.request({
+        body: encryptedData2body(data)
+    });
+    return { deleted: false, errorCode: 0, errorMessage: null, ...response.data };
+};

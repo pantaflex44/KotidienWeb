@@ -10,8 +10,8 @@ import { showNotification } from "@mantine/notifications";
 
 import { IconThumbUp, IconX } from "@tabler/icons";
 
-import { getAmountAt, login, saveWallet } from "../wrappers/wallet_api";
-import { decryptData, getDatePattern, getLastDayOfMonth, toSqlDate } from "../../tools";
+import { getAmountAt, login, saveWallet, deleteWallet } from "../wrappers/wallet_api";
+import { decryptData, getDatePattern, getLastDayOfMonth, toSqlDate, uid } from "../../tools";
 
 import dayjs from "dayjs";
 import "dayjs/locale/fr";
@@ -57,8 +57,12 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
 
     let logoutTimout = null;
 
+    const rgpdAgreed = () => {
+        return localStorage.getItem("rgpd-agreed") === "true" ? true : false;
+    };
+
     const save = () => {
-        if (saving || !expectedSaving || !currentPassword) return;
+        if (!expectedSaving || !currentPassword) return;
 
         setSaving(true);
         saveWallet({ ...wallet, password: currentPassword })
@@ -85,9 +89,41 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
             });
     };
 
+    const deleteCurrentWallet = (password) => {
+        return new Promise((resolve, reject) => {
+            deleteWallet({ email: wallet.email, password })
+                .then((response) => {
+                    const { deleted, errorCode, errorMessage } = response;
+
+                    if (!deleted || errorCode !== 0) {
+                        showNotification({
+                            id: `delete-error-notification-${uid()}`,
+                            disallowClose: true,
+                            autoClose: 5000,
+                            title: "Suppression de votre portefeuille",
+                            message: errorMessage,
+                            color: "red",
+                            icon: <IconX size={18} />,
+                            loading: false
+                        });
+                        reject({ errorCode, errorMessage });
+                    } else {
+                        setExpectedSaving(false);
+                        setWallet(null);
+                        setCurrentPassword(null);
+
+                        resolve();
+                    }
+                })
+                .catch((err) => {
+                    reject({ errorCode: 500, errorMessage: err.message });
+                });
+        });
+    };
+
     const saveAsync = () =>
         new Promise((resolve, reject) => {
-            if (saving || !expectedSaving || !currentPassword) {
+            if (!expectedSaving || !currentPassword) {
                 resolve();
                 return;
             }
@@ -166,7 +202,7 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
 
                     reject({ errorCode, errorMessage });
                 } else {
-                    if (saveIdents) {
+                    if (saveIdents && rgpdAgreed()) {
                         localStorage.setItem("credentials_email", email);
                         localStorage.setItem("credentials_password", password);
                     } else {
@@ -193,7 +229,6 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
             setExpectedSaving(false);
             setWallet(null);
             setCurrentPassword(null);
-            closeAllModals();
             navigate("/");
         };
 
@@ -412,6 +447,7 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                 expectedSaving: useMemo(() => expectedSaving, [expectedSaving]),
                 saving: useMemo(() => saving, [saving]),
                 save,
+                deleteCurrentWallet,
                 saveAsync,
                 setWallet,
                 setCategories,
@@ -422,6 +458,7 @@ const AppProvider = ({ colorScheme, toggleColorScheme, children }) => {
                 setView,
                 disconnect,
                 connect,
+                rgpdAgreed,
                 refreshAmounts,
                 currentDate,
                 refreshCurrentDate,

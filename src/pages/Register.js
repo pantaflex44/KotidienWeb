@@ -354,7 +354,7 @@ function Register() {
                     <Divider variant="dotted" mt={"sm"} />
 
                     <Container
-                        size={"lg"}
+                        size={"md"}
                         mt={{ base: 0, sm: "xs" }}
                         ml={{ base: "auto", sm: "xs" }}
                         mr={{ base: "auto", sm: "xs" }}

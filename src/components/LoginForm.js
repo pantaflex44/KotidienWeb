@@ -3,7 +3,20 @@ import packagejson from "../../package.json";
 import React, { useContext, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { Paper, Title, Text, Stack, TextInput, PasswordInput, Group, Button, Loader, Checkbox } from "@mantine/core";
+import {
+    Paper,
+    Title,
+    Text,
+    Stack,
+    TextInput,
+    PasswordInput,
+    Group,
+    Button,
+    Loader,
+    Checkbox,
+    Anchor,
+    SegmentedControl
+} from "@mantine/core";
 import { IconAt, IconEyeCheck, IconEyeOff, IconLock, IconLogin, IconShieldLock, IconX } from "@tabler/icons";
 import { useForm } from "@mantine/form";
 import { showNotification } from "@mantine/notifications";
@@ -17,6 +30,7 @@ function LoginForm() {
     const app = useContext(AppContext);
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [rgpdChoice, setRgpdChoice] = useState(localStorage.getItem("rgpd-agreed") || "");
     const storedCredentials = {
         email: localStorage.getItem("credentials_email") || "",
         password: localStorage.getItem("credentials_password") || ""
@@ -95,12 +109,43 @@ function LoginForm() {
                             icon={<IconLock size={14} />}
                             {...loginForm.getInputProps("password")}
                         />
-                        <Checkbox
-                            label="Conserver mes identifiants sur cet appareil."
-                            {...loginForm.getInputProps("saveIdents", { type: "checkbox" })}
+                        {app.rgpdAgreed() && (
+                            <Checkbox
+                                label="Conserver mes identifiants sur cet appareil."
+                                {...loginForm.getInputProps("saveIdents", { type: "checkbox" })}
+                            />
+                        )}
+                        <Text size={"xs"} color={"dimmed"}>
+                            {packagejson.name.trim().toLowerCase().capitalize()} utilise un espace de stockage sur votre
+                            ordinateur pour améliorer son ergonomie. Dans le cadre{" "}
+                            <Anchor
+                                href="https://www.cnil.fr/fr/reglement-europeen-protection-donnees"
+                                target={"_blank"}
+                            >
+                                des lois RGPD surveillées par la CNIL
+                            </Anchor>{" "}
+                            vous devez y consentir pour en profiter. Toutefois, ces fonctionnalités n'entachent en rien
+                            le bon fonctionnement de l'application.
+                        </Text>
+                        <SegmentedControl
+                            data={[
+                                { label: "Je ne sais pas", value: "" },
+                                { label: "Je refuse", value: "false" },
+                                { label: "J'accepte", value: "true" }
+                            ]}
+                            value={rgpdChoice}
+                            onChange={(value) => {
+                                setRgpdChoice(() => {
+                                    if (value !== "true") localStorage.clear();
+                                    if (value !== "") localStorage.setItem("rgpd-agreed", value);
+                                    return value;
+                                });
+                            }}
                         />
                         <Group position="right" mt="md">
-                            <Button type="submit">Connexion</Button>
+                            <Button type="submit" disabled={rgpdChoice === ""}>
+                                Connexion
+                            </Button>
                         </Group>
                     </Stack>
                 </form>

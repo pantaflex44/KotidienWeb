@@ -20,6 +20,8 @@ import {
     Menu,
     Button
 } from "@mantine/core";
+import { openConfirmModal } from "@mantine/modals";
+
 import {
     IconAlien,
     IconDeviceFloppy,
@@ -31,14 +33,15 @@ import {
     IconSettings,
     IconSettings2,
     IconSos,
-    IconSun
+    IconSun,
+    IconTrashX
 } from "@tabler/icons";
 
 import { AppContext } from "./AppProvider";
 import SettingsModal from "./SettingsModal";
 import ShortcutsModal from "./ShortcutsModal";
 import AboutModal from "./AboutModal";
-import { openConfirmModal } from "@mantine/modals";
+import WalletDeletionModal from "./WalletDeletionModal";
 
 const Layout = ({ navbar = { header: null, content: null }, children }) => {
     const app = useContext(AppContext);
@@ -46,6 +49,7 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
     const [settingsOpened, setSettingsOpened] = useState(false);
     const [shortcutsOpened, setShortcutsOpened] = useState(false);
     const [aboutOpened, setAboutOpened] = useState(false);
+    const [deletionOpened, setDeletionOpened] = useState(false);
 
     const memoizedSettings = useMemo(
         () => ({
@@ -109,6 +113,7 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
 
                         <ShortcutsModal visible={shortcutsOpened} onClose={() => setShortcutsOpened(false)} />
                         <AboutModal visible={aboutOpened} onClose={() => setAboutOpened(false)} />
+                        <WalletDeletionModal visible={deletionOpened} onClose={() => setDeletionOpened(false)} />
 
                         <AppShell
                             footer={
@@ -280,6 +285,14 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                                             icon={<IconInfoCircle size={14} stroke={1.5} />}
                                                         >
                                                             A propos de...
+                                                        </Menu.Item>
+                                                        <Menu.Divider />
+                                                        <Menu.Item
+                                                            color={"red.9"}
+                                                            onClick={() => setDeletionOpened(true)}
+                                                            icon={<IconTrashX size={14} stroke={1.5} />}
+                                                        >
+                                                            Supprimer mon portefeuille
                                                         </Menu.Item>
                                                     </Menu.Dropdown>
                                                 </Menu>

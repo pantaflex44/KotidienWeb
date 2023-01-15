@@ -1,7 +1,11 @@
 import packagejson from "../../package.json";
+
 import defaultWalletItemViewFilter from "../../defaults/walletItemViewFilter";
 import defaultWalletItemViewSorter from "../../defaults/walletItemViewSorter";
 import { defaultWalletCategories } from "../../defaults/walletCategories";
+
+import dayjs from "dayjs";
+import { jsPDF } from "jspdf";
 
 import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
 
@@ -26,7 +30,7 @@ import {
 import { DatePicker } from "@mantine/dates";
 import { closeAllModals, openConfirmModal } from "@mantine/modals";
 import { useForm } from "@mantine/form";
-import { getHotkeyHandler, useClickOutside, useFocusTrap, useHotkeys } from "@mantine/hooks";
+import { useClickOutside, useFocusTrap, useHotkeys } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 
 import {
@@ -39,12 +43,16 @@ import {
     IconCategory,
     IconCurrencyEuro,
     IconEdit,
+    IconFileDownload,
     IconFileExport,
     IconFileImport,
+    IconFileInvoice,
+    IconFilePercent,
     IconFileText,
     IconFilter,
     IconListDetails,
     IconPlus,
+    IconPrinter,
     IconQuote,
     IconRefresh,
     IconRotateRectangle,
@@ -63,8 +71,19 @@ import FiltersBar from "./FiltersBar";
 import WalletResumeBox from "./WalletResumeBox";
 import OpeList from "./OpeList";
 
-import { getDatePattern, toSqlDate, uid } from "../../tools";
-import { saveOperation, getOperations, deleteOperations } from "../wrappers/wallet_api";
+import {
+    currencyFormatter,
+    downloadFile,
+    getDatePattern,
+    getFirstDayOfCurrentMonth,
+    getLastDayOfCurrentMonth,
+    slugify,
+    toSqlDate,
+    uid,
+    printData,
+    currencyRound
+} from "../../tools";
+import { saveOperation, getOperations, deleteOperations, getAmountAt } from "../wrappers/wallet_api";
 
 function Wallet({
     walletItem,
@@ -109,6 +128,13 @@ function Wallet({
                 values.type === "operation" ? (value === "" ? "Tiers requis!" : null) : null,
             fromWalletItemId: (value, values) =>
                 values.type === "transfer" ? (value === null || value === "" ? "Destination requise!" : null) : null
+        }
+    });
+
+    const exportForm = useForm({
+        initialValues: {
+            startDate: getFirstDayOfCurrentMonth(),
+            endDate: getLastDayOfCurrentMonth()
         }
     });
 
@@ -408,6 +434,411 @@ function Wallet({
         }
     };
 
+    const getPublicFormattedOperationsByDates = (startDate, endDate) => {
+        const custumFilters = {
+            interval: "",
+            startDate: dayjs(startDate).format("YYYY-MM-DD"),
+            endDate: dayjs(endDate).format("YYYY-MM-DD"),
+            types: ["pendings", "incomes", "transfers"],
+            paytypes: [],
+            categories: [],
+            states: "all",
+            thirdparties: [],
+            hideClosedOperations: false
+        };
+
+        const getThirdparty = (id) => {
+            const found = app.wallet.thirdparties.filter((t) => t.id === id);
+            if (found.length === 1) return found[0];
+            return null;
+        };
+
+        const getWalletItem = (id) => {
+            const found = app.wallet.walletItems.filter((t) => t.id === id);
+            if (found.length === 1) return found[0];
+            return null;
+        };
+
+        const getCategory = (id) => {
+            const found = app.wallet.categories.filter((t) => t.id === id);
+            if (found.length === 1) return found[0];
+            return null;
+        };
+
+        const getPaytype = (id) => {
+            const found = app.wallet.paytypes.filter((t) => t.id === id);
+            if (found.length === 1) return found[0];
+            return null;
+        };
+
+        return new Promise((resolve, reject) => {
+            getOperations(app.wallet.email, walletItem.id, custumFilters).then((response) => {
+                const { operations, errorCode, errorMessage } = response;
+
+                if (errorCode !== 0) {
+                    showNotification({
+                        id: `get-operation-error-notification-${uid()}`,
+                        disallowClose: true,
+                        autoClose: 5000,
+                        title: "Impossible d'exporter les opérations!",
+                        message: errorMessage,
+                        color: "red",
+                        icon: <IconX size={18} />,
+                        loading: false
+                    });
+                    reject();
+                }
+
+                if (operations.length === 0) {
+                    showNotification({
+                        id: `get-operation-error-notification-${uid()}`,
+                        disallowClose: true,
+                        autoClose: 5000,
+                        title: "Impossible d'exporter les opérations!",
+                        message: "Aucune opération à exporter.",
+                        color: "red",
+                        icon: <IconX size={18} />,
+                        loading: false
+                    });
+                    reject();
+                }
+
+                const items = operations.map((item) => {
+                    const itemThirdparty =
+                        item.type === "operation"
+                            ? getThirdparty(item.thirdpartyId)?.name || "-"
+                            : item.type === "transfer"
+                            ? getWalletItem(item.amount > 0 ? item.toWalletItemId : item.fromWalletItemId)?.name || "-"
+                            : "-";
+                    const itemCategory = getCategory(item.categoryId)?.name || "";
+                    const itemPaytype = getPaytype(item.paytypeId)?.name || "";
+                    const itemFrom =
+                        item.amount < 0
+                            ? item.type === "transfer"
+                                ? "Transfert vers"
+                                : "Paiement à"
+                            : item.amount > 0
+                            ? "Reçu de"
+                            : "";
+
+                    const formattedItem = {
+                        id: item.id,
+                        date: item.date,
+                        type: item.type,
+                        title: item.title,
+                        comment: item.comment,
+                        amount: item.amount,
+                        currency: "EUR",
+                        thirdparty: (itemFrom + " " + itemThirdparty).trim(),
+                        category: itemCategory,
+                        paytype: itemPaytype,
+                        closed: item.state === 1
+                    };
+                    return formattedItem;
+                });
+                resolve(items.sort((a, b) => dayjs(a.date).unix() - dayjs(b.date).unix()));
+            });
+        });
+    };
+
+    const exportToOfx = () => {
+        setLoading(true);
+
+        getPublicFormattedOperationsByDates(exportForm.values.startDate, exportForm.values.endDate)
+            .then(async (operations) => {
+                let ofx = `<?xml version="1.0" encoding="UTF-8" standalone="no"?><?OFX OFXHEADER="200" VERSION="220" SECURITY="NONE" OLDFILEUID="NONE" NEWFILEUID="NONE"?>`;
+
+                const DTSERVER = dayjs().format("YYYYMMDD") + "000000";
+                const ORG = packagejson.name.trim().toLowerCase().capitalize();
+                const FID = packagejson.version;
+                const TRNUID = walletItem.id;
+                const BANKID =
+                    !walletItem.hasOwnProperty("bankaccountBic") || !walletItem.bankaccountBic
+                        ? dayjs().format("YYYYMMDD") + "000000bid"
+                        : walletItem.bankaccountBic;
+                const ACCTID =
+                    !walletItem.hasOwnProperty("bankaccountIban") || !walletItem.bankaccountIban
+                        ? dayjs().format("YYYYMMDD") + "000000act"
+                        : walletItem.bankaccountIban;
+                const DTSTART = dayjs(exportForm.values.startDate).format("YYYYMMDD") + "000000";
+                const DTEND = dayjs(exportForm.values.endDate).format("YYYYMMDD") + "000000";
+
+                ofx += `<OFX><SIGNONMSGSRSV1><SONRS><STATUS><CODE>0</CODE><SEVERITY>INFO</SEVERITY></STATUS><DTSERVER>${DTSERVER}</DTSERVER><LANGUAGE>FRA</LANGUAGE><FI><ORG>${ORG}</ORG><FID>${FID}</FID></FI></SONRS></SIGNONMSGSRSV1><BANKMSGSRSV1><STMTTRNRS><TRNUID>${TRNUID}</TRNUID><STATUS><CODE>0</CODE><SEVERITY>INFO</SEVERITY></STATUS><STMTRS><CURDEF>EUR</CURDEF><BANKACCTFROM><BANKID>${BANKID}</BANKID><ACCTID>${ACCTID}</ACCTID><ACCTTYPE>CHECKING</ACCTTYPE></BANKACCTFROM><BANKTRANLIST>`;
+                ofx += `<DTSTART>${DTSTART}</DTSTART><DTEND>${DTEND}</DTEND>`;
+
+                let lastDate = new Date(Date.parse("1970-01-01"));
+                operations.map((operation) => {
+                    const TRNTYPE = operation.type === "transfer" ? "XFER" : operation.amount < 0 ? "DEBIT" : "CREDIT";
+                    const DTPOSTED = dayjs(operation.date).format("YYYYMMDD") + "000000";
+                    const TRNAMT = currencyRound(operation.amount, 2);
+                    const FITID = operation.id;
+                    const NAME = (
+                        operation.title +
+                        " " +
+                        operation.thirdparty +
+                        " " +
+                        operation.category +
+                        " " +
+                        operation.paytype
+                    )
+                        .trim()
+                        .toUpperCase();
+                    const MEMO = operation.comment;
+
+                    ofx += `<STMTTRN><TRNTYPE>${TRNTYPE}</TRNTYPE><DTPOSTED>${DTPOSTED}</DTPOSTED><TRNAMT>${TRNAMT}</TRNAMT><FITID>${FITID}</FITID><NAME>${NAME}</NAME><MEMO>${MEMO}</MEMO><CURRENCY><CURRATE>1</CURRATE><CURSYM>EUR</CURSYM></CURRENCY></STMTTRN>`;
+
+                    if (new Date(Date.parse(operation.date)) > lastDate)
+                        lastDate = new Date(Date.parse(operation.date));
+                });
+
+                const totalAmount =
+                    walletItem.initialAmount +
+                    ((await getAmountAt(app.wallet.email, walletItem.id, lastDate))?.amount || 0);
+                const BALAMT = currencyRound(totalAmount, 2);
+                const DTASOF = dayjs(lastDate).format("YYYYMMDD") + "000000";
+
+                ofx += `</BANKTRANLIST><LEDGERBAL><BALAMT>${BALAMT}</BALAMT><DTASOF>${DTASOF}</DTASOF></LEDGERBAL></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>`;
+
+                const filename = `${packagejson.name.trim().toLowerCase().capitalize()}_${slugify(
+                    walletItem.name
+                )}_${dayjs(exportForm.values.startDate).format("YYYYMMDD")}_${dayjs(exportForm.values.endDate).format(
+                    "YYYYMMDD"
+                )}.ofx`;
+
+                showNotification({
+                    id: `export-operation-notification-${uid()}`,
+                    disallowClose: true,
+                    autoClose: 5000,
+                    title: "Exportation des opérations réussie!",
+                    message: "Document envoyé à votre navigateur pour téléchargement.",
+                    color: "green",
+                    icon: <IconFileDownload size={18} />,
+                    loading: false
+                });
+
+                downloadFile(filename, ofx, false, "text/xml");
+            })
+            .finally(() => setLoading(false));
+    };
+
+    const exportToCsv = () => {
+        setLoading(true);
+
+        getPublicFormattedOperationsByDates(exportForm.values.startDate, exportForm.values.endDate)
+            .then((operations) => {
+                const csv_separators_columns = app.wallet
+                    ? app.wallet.params?.csv?.separators?.columns === null ||
+                      app.wallet.params?.csv?.separators?.columns === undefined
+                        ? ";"
+                        : app.wallet.params.csv.separators.columns
+                    : ";";
+                const csv_separators_decimals = app.wallet
+                    ? app.wallet.params?.csv?.separators?.decimals === null ||
+                      app.wallet.params?.csv?.separators?.decimals === undefined
+                        ? ","
+                        : app.wallet.params?.csv?.separators?.decimals
+                    : ",";
+                const csv_dateformat = app.wallet
+                    ? app.wallet.params?.csv?.dateformat === null || app.wallet.params?.csv?.dateformat === undefined
+                        ? "DD/MM/YYYY"
+                        : app.wallet.params?.csv?.dateformat
+                    : "DD/MM/YYYY";
+
+                const formattedOperations = operations.map((item) => {
+                    return {
+                        ...item,
+                        date: dayjs(item.date).format(csv_dateformat),
+                        amount: item.amount.toFixed(2).replace(".", csv_separators_decimals)
+                    };
+                });
+
+                const headers = Object.keys(formattedOperations[0]).join(csv_separators_columns);
+                const content = formattedOperations
+                    .map((row) => Object.values(row).join(csv_separators_columns))
+                    .join("\n");
+                const csv = headers + "\n" + content;
+
+                const filename = `${packagejson.name.trim().toLowerCase().capitalize()}_${slugify(
+                    walletItem.name
+                )}_${dayjs(exportForm.values.startDate).format("YYYYMMDD")}_${dayjs(exportForm.values.endDate).format(
+                    "YYYYMMDD"
+                )}.csv`;
+
+                showNotification({
+                    id: `export-operation-notification-${uid()}`,
+                    disallowClose: true,
+                    autoClose: 5000,
+                    title: "Exportation des opérations réussie!",
+                    message: "Document envoyé à votre navigateur pour téléchargement.",
+                    color: "green",
+                    icon: <IconFileDownload size={18} />,
+                    loading: false
+                });
+
+                downloadFile(filename, csv, false, "text/csv");
+            })
+            .finally(() => setLoading(false));
+    };
+
+    const exportToPdf = (print = false) => {
+        setLoading(true);
+
+        getPublicFormattedOperationsByDates(exportForm.values.startDate, exportForm.values.endDate)
+            .then(async (operations) => {
+                let datted = {};
+                operations.map((item) => {
+                    if (!datted.hasOwnProperty(item.date)) datted[item.date] = [];
+                    const { date, ...rest } = item;
+                    datted[item.date].push(rest);
+                });
+
+                let amounts = {};
+                await Promise.all(
+                    Object.keys(datted).map(async (date) => {
+                        amounts[date] =
+                            walletItem.initialAmount +
+                            ((await getAmountAt(app.wallet.email, walletItem.id, new Date(Date.parse(date))))?.amount ||
+                                0);
+                    })
+                );
+
+                const doc = new jsPDF({
+                    orientation: "portrait",
+                    unit: "mm",
+                    format: "a4",
+                    putOnlyUsedFonts: true,
+                    floatPrecision: 16,
+                    compress: true
+                });
+                doc.setLanguage(packagejson.i18n.defaultLocale);
+                doc.setProperties({
+                    title: `${walletItem.name} du ${dayjs(exportForm.values.startDate).format(
+                        getDatePattern(packagejson.i18n.defaultLocale, false)
+                    )} au ${dayjs(exportForm.values.endDate).format(
+                        getDatePattern(packagejson.i18n.defaultLocale, false)
+                    )}`,
+                    creator: packagejson.name.trim().toLowerCase().capitalize()
+                });
+
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const pageHeight = doc.internal.pageSize.getHeight();
+                const defaultFontSize = doc.getFontSize();
+                const initialTop = 17;
+                const fontFamilly = "helvetica";
+                const headerFontSize = defaultFontSize - 8;
+                const titleFontSize = defaultFontSize - 6;
+                const normalFontSize = defaultFontSize - 7;
+                const smallFontSize = defaultFontSize - 8;
+                let currentTop = initialTop;
+                let currentPage = 1;
+
+                const drawHeader = () => {
+                    const headerLeft = `${walletItem.name} du ${dayjs(exportForm.values.startDate).format(
+                        getDatePattern(packagejson.i18n.defaultLocale, false)
+                    )} au ${dayjs(exportForm.values.endDate).format(
+                        getDatePattern(packagejson.i18n.defaultLocale, false)
+                    )}`;
+                    const headerRight = `Page ${currentPage}`;
+                    const headerRightWidth = doc.getStringUnitWidth(headerRight) * headerFontSize;
+                    doc.setFont(fontFamilly, "normal");
+                    doc.setFontSize(headerFontSize);
+                    doc.text(headerLeft, 7, 7);
+                    doc.text(headerRight, pageWidth - headerRightWidth, 7);
+                };
+
+                const isNewPageNeeded = (fontSize) => {
+                    if (currentTop > pageHeight - initialTop - fontSize) {
+                        doc.addPage();
+                        currentPage++;
+                        drawHeader();
+                        currentTop = initialTop;
+                    }
+                };
+
+                drawHeader();
+
+                Object.keys(datted).map(async (date) => {
+                    isNewPageNeeded(titleFontSize);
+
+                    const formattedDate = dayjs(date)
+                        .locale(packagejson.i18n.defaultLocale)
+                        .format(getDatePattern(packagejson.i18n.defaultLocale, true));
+                    const totalAmountFormatted = currencyFormatter(amounts[date] || 0)
+                        .replace("\u202f", " ")
+                        .replace("\u00a0", " ")
+                        .replace("\u20ac", "€");
+
+                    const text = `${formattedDate}, solde: ${totalAmountFormatted}`;
+                    console.log(text);
+
+                    doc.setDrawColor("#000");
+                    doc.setFont(fontFamilly, "normal");
+                    doc.setFontSize(titleFontSize);
+                    doc.text(text, 7, currentTop, { charSpace: 0 });
+                    doc.setLineWidth(0.1);
+                    doc.line(7, currentTop + 1.5, pageWidth - 7, currentTop + 1.5);
+
+                    currentTop += titleFontSize;
+
+                    datted[date].map((item) => {
+                        isNewPageNeeded(normalFontSize);
+
+                        const formattedAmount = currencyFormatter(item.amount)
+                            .replace("\u202f", " ")
+                            .replace("\u00a0", " ")
+                            .replace("\u20ac", "€");
+
+                        doc.setFont(fontFamilly, "bold");
+                        doc.setFontSize(normalFontSize);
+                        doc.text(item.title, 7, currentTop);
+                        doc.text(formattedAmount, (pageWidth / 4) * 3, currentTop);
+
+                        doc.setFont(fontFamilly, "normal");
+                        currentTop += 5;
+                        doc.setFontSize(smallFontSize);
+                        doc.text(item.comment || "(aucun commentaire)", 7, currentTop);
+                        currentTop += 5;
+                        doc.setFontSize(normalFontSize);
+                        doc.text(item.thirdparty, 7, currentTop);
+                        doc.text(item.category, pageWidth / 2, currentTop);
+                        doc.text(item.paytype, (pageWidth / 4) * 3, currentTop);
+
+                        doc.setLineWidth(0.1);
+                        doc.setDrawColor("#CCC");
+                        doc.line(7, currentTop + 1.5, pageWidth - 7, currentTop + 1.5);
+
+                        currentTop += normalFontSize + 2;
+                    });
+                });
+
+                if (print) {
+                    printData(doc.output("blob"), true);
+                } else {
+                    const filename = `${packagejson.name.trim().toLowerCase().capitalize()}_${slugify(
+                        walletItem.name
+                    )}_${dayjs(exportForm.values.startDate).format("YYYYMMDD")}_${dayjs(
+                        exportForm.values.endDate
+                    ).format("YYYYMMDD")}.pdf`;
+
+                    downloadFile(filename, doc.output("blob"), true);
+                }
+
+                showNotification({
+                    id: `export-operation-notification-${uid()}`,
+                    disallowClose: true,
+                    autoClose: 5000,
+                    title: "Exportation des opérations réussie!",
+                    message: print
+                        ? "Document envoyé à votre serveur d'impression."
+                        : "Document envoyé à votre navigateur pour téléchargement.",
+                    color: "green",
+                    icon: print ? <IconPrinter size={18} /> : <IconFileDownload size={18} />,
+                    loading: false
+                });
+            })
+            .finally(() => setLoading(false));
+    };
+
     const loadOpeList = useCallback(() => {
         setLoading(true);
         setSelected([]);
@@ -504,62 +935,6 @@ function Wallet({
             "Enter",
             () => {
                 if (!loading && !addEditModalOpened && selected.length === 1) openOpe();
-            }
-        ],
-        [
-            "mod+alt+A",
-            () => {
-                if (!loading && !addEditModalOpened && selected.length !== opeListItems.length) {
-                    setSelected(opeListItems.map((o) => o.id));
-                }
-            }
-        ],
-        [
-            "Escape",
-            () => {
-                if (!loading && !addEditModalOpened) setSelected([]);
-            }
-        ],
-        [
-            "ArrowDown",
-            () => {
-                if (!loading && !addEditModalOpened) {
-                    if (selected.length === 0) {
-                        setSelected([opeListItems[0].id]);
-                    } else {
-                        const index = opeListItems.findIndex((o) => o.id === selected[0]);
-                        if (index < opeListItems.length - 1) {
-                            setSelected([opeListItems[index + 1].id]);
-                        }
-                    }
-                }
-            }
-        ],
-        [
-            "ArrowUp",
-            () => {
-                if (!loading && !addEditModalOpened) {
-                    if (selected.length === 0) {
-                        setSelected([opeListItems[opeListItems.length - 1].id]);
-                    } else {
-                        const index = opeListItems.findIndex((o) => o.id === selected[0]);
-                        if (index > 0) {
-                            setSelected([opeListItems[index - 1].id]);
-                        }
-                    }
-                }
-            }
-        ],
-        [
-            "ArrowLeft",
-            () => {
-                if (!loading && !addEditModalOpened) setSelected([opeListItems[0].id]);
-            }
-        ],
-        [
-            "ArrowRight",
-            () => {
-                if (!loading && !addEditModalOpened) setSelected([opeListItems[opeListItems.length - 1].id]);
             }
         ]
     ]);
@@ -946,7 +1321,7 @@ function Wallet({
                                 <Divider orientation={"vertical"} />
                                 <Menu shadow="md" width={200} disabled={loading} withArrow={true} withinPortal={true}>
                                     <Menu.Target>
-                                        <Tooltip label={"Importations"} withinPortal={true} withArrow={true}>
+                                        <Tooltip label={"Importer"} withinPortal={true} withArrow={true}>
                                             <ActionIcon size="md" variant={"subtle"} color={"dark"} disabled={loading}>
                                                 <IconFileImport size={16} stroke={2} />
                                             </ActionIcon>
@@ -959,13 +1334,13 @@ function Wallet({
                                 </Menu>
                                 <Menu
                                     shadow="md"
-                                    width={200}
+                                    width={250}
                                     disabled={loading || opeListItems.length === 0}
                                     withArrow={true}
                                     withinPortal={true}
                                 >
                                     <Menu.Target>
-                                        <Tooltip label={"Exportations"} withinPortal={true} withArrow={true}>
+                                        <Tooltip label={"Imprimer / Exporter"} withinPortal={true} withArrow={true}>
                                             <ActionIcon
                                                 size="md"
                                                 variant={"subtle"}
@@ -977,8 +1352,92 @@ function Wallet({
                                         </Tooltip>
                                     </Menu.Target>
                                     <Menu.Dropdown>
-                                        <Menu.Label>Exporter au format</Menu.Label>
-                                        <Menu.Item icon={<IconFileText size={14} />}>CSV</Menu.Item>
+                                        <Menu.Label>
+                                            <Stack spacing={"xs"}>
+                                                <Text>Exporter au format</Text>
+                                                <Group style={{ flexWrap: "nowrap" }} position="apart">
+                                                    <Text>du</Text>
+                                                    <DatePicker
+                                                        clearable={false}
+                                                        locale={packagejson.i18n.defaultLocale}
+                                                        inputFormat={getDatePattern(
+                                                            packagejson.i18n.defaultLocale,
+                                                            false
+                                                        )}
+                                                        {...exportForm.getInputProps("startDate")}
+                                                        rightSection={
+                                                            <Tooltip
+                                                                label={"Premier jour du mois courant"}
+                                                                withinPortal={true}
+                                                                withArrow={true}
+                                                            >
+                                                                <ActionIcon
+                                                                    variant={"transparent"}
+                                                                    color={"gray.5"}
+                                                                    onClick={() => {
+                                                                        exportForm.setValues((current) => ({
+                                                                            ...current,
+                                                                            startDate: getFirstDayOfCurrentMonth()
+                                                                        }));
+                                                                    }}
+                                                                >
+                                                                    <IconX size={16} stroke={1.5} />
+                                                                </ActionIcon>
+                                                            </Tooltip>
+                                                        }
+                                                        size="xs"
+                                                        maxDate={exportForm.values.endDate}
+                                                    />
+                                                </Group>
+                                                <Group style={{ flexWrap: "nowrap" }} position="apart">
+                                                    <Text>au</Text>
+                                                    <DatePicker
+                                                        clearable={false}
+                                                        locale={packagejson.i18n.defaultLocale}
+                                                        inputFormat={getDatePattern(
+                                                            packagejson.i18n.defaultLocale,
+                                                            false
+                                                        )}
+                                                        {...exportForm.getInputProps("endDate")}
+                                                        rightSection={
+                                                            <Tooltip
+                                                                label={"Dernier jour du mois courant"}
+                                                                withinPortal={true}
+                                                                withArrow={true}
+                                                            >
+                                                                <ActionIcon
+                                                                    variant={"transparent"}
+                                                                    color={"gray.5"}
+                                                                    onClick={() => {
+                                                                        exportForm.setValues((current) => ({
+                                                                            ...current,
+                                                                            endDate: getLastDayOfCurrentMonth()
+                                                                        }));
+                                                                    }}
+                                                                >
+                                                                    <IconX size={16} stroke={1.5} />
+                                                                </ActionIcon>
+                                                            </Tooltip>
+                                                        }
+                                                        size="xs"
+                                                        minDate={exportForm.values.startDate}
+                                                    />
+                                                </Group>
+                                                <Divider variant="dotted" />
+                                            </Stack>
+                                        </Menu.Label>
+                                        <Menu.Item icon={<IconFileText size={14} />} onClick={() => exportToCsv()}>
+                                            Format CSV
+                                        </Menu.Item>
+                                        <Menu.Item icon={<IconFileInvoice size={14} />} onClick={() => exportToPdf()}>
+                                            Format PDF
+                                        </Menu.Item>
+                                        <Menu.Item icon={<IconFilePercent size={14} />} onClick={() => exportToOfx()}>
+                                            Format OFX
+                                        </Menu.Item>
+                                        <Menu.Item icon={<IconPrinter size={14} />} onClick={() => exportToPdf(true)}>
+                                            Imprimer
+                                        </Menu.Item>
                                     </Menu.Dropdown>
                                 </Menu>
                             </Group>

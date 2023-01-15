@@ -505,6 +505,46 @@ const intervalToDates = (interval) => {
     return dates;
 };
 
+const downloadFile = (filename, data, isBlob = false, type = "text/plain") => {
+    if (!window) return;
+
+    const csvURL = window.URL.createObjectURL(!isBlob ? new Blob([data], { type }) : data);
+    tempLink = document.createElement("a");
+    tempLink.href = csvURL;
+    tempLink.setAttribute("download", filename);
+    tempLink.click();
+};
+
+const printData = (data, isBlob = false, type = "text/plain") => {
+    if (!window) return;
+
+    const blobURL = window.URL.createObjectURL(!isBlob ? new Blob([data], { type }) : data);
+    let iframe = window.document.createElement("iframe");
+    document.body.appendChild(iframe);
+    iframe.style.display = "none";
+    iframe.src = blobURL;
+    iframe.onload = function () {
+        setTimeout(function () {
+            iframe.focus();
+            iframe.contentWindow.print();
+        }, 1);
+    };
+};
+
+const utf8ToAscii = (str) => {
+    const reg = /[\x7f-\uffff]/g; // charCode: [127, 65535]
+    const replacer = (s) => {
+        const charCode = s.charCodeAt(0);
+        const unicode = charCode.toString(16).padStart(4, "0");
+        return `\\u${unicode}`;
+    };
+    return str.replace(reg, replacer);
+};
+
+const currencyRound = (value, decimals = 2) => {
+    return Number(Math.round(value + "e" + decimals) + "e-" + decimals);
+}
+
 module.exports = {
     slugify,
     writeJson,
@@ -536,5 +576,9 @@ module.exports = {
     getLongDayDatePattern,
     getLongMonthYearPattern,
     intervalToDates,
-    toSqlDate
+    toSqlDate,
+    downloadFile,
+    printData,
+    utf8ToAscii,
+    currencyRound
 };
