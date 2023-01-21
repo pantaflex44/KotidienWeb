@@ -23,8 +23,8 @@ La complétion automatique des différentes informations permet une saisie plus 
 - **Française et en Français**! Et oui, Kotidien est une application tricolore, qui vous parle français :-)
 - **Prédictive**. Vos soldes sont automatiquement calculés, qu'ils soient passés mais aussi futurs! Vous savez à tout instant quel sera votre solde à la fin du mois. Attention au découvert. Kotidien le surveille.
 - **Ouverte sur le monde**. Importer les données depuis votre banque, ou les exporter sur votre ordinateur n'a jamais été aussi simple. Plusieurs formats supportés, tels le CSV, l'OFX, le PDF, et même l'impression.
-- **Plannifier et organiser**. C'est le but de Kotidien. Chaque transaction est organisée par catégorie, type, tiers, etc. Une plannification automatique est aussi disponible vous permettant, via des modèles, d'enregistrer des transactions automatiques et répétitives. Pratique pour pré-enregistrer les opérations récurrentes ;-)
-- **Libre de droits**. Enfin, à un détail prêt: respecter la licence libre MIT dont dépent Kotidien et ce quelle impose. A part celà, vous êtes libre de redistribuer, modifier et améliorer Kotidien à votre guise.
+- **Planifier et organiser**. C'est le but de Kotidien. Chaque transaction est organisée par catégorie, type, tiers, etc. Une planification automatique est aussi disponible vous permettant, via des modèles, d'enregistrer des transactions automatiques et répétitives. Pratique pour pré-enregistrer les opérations récurrentes ;-)
+- **Libre de droits**. Enfin, à un détail prêt: respecter la licence libre MIT dont dépend Kotidien et ce quelle impose. A part celà, vous êtes libre de redistribuer, modifier et améliorer Kotidien à votre guise.
 - **Totalement gratuite**! Pourquoi payer pour économiser?
 
 #### Points faibles

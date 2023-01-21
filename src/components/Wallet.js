@@ -21,7 +21,6 @@ import {
     Modal,
     NumberInput,
     Select,
-    SimpleGrid,
     Space,
     Stack,
     Tabs,
@@ -89,6 +88,7 @@ import {
     uploadTextFile
 } from "../../tools";
 import { saveOperation, getOperations, deleteOperations, getAmountAt } from "../wrappers/wallet_api";
+import OfxImportModal from "./OfxImportModal";
 
 function Wallet({
     walletItem,
@@ -106,8 +106,10 @@ function Wallet({
     const [sorter, setSorter] = useState({ ...walletSorter });
     const [opeListItems, setOpeListItems] = useState([]);
     const [forceRefresh, setForceRefresh] = useState("");
-    const [csvContent, setCsvContent] = useState("");
+    const [importContent, setImportContent] = useState(null);
+    const [importOfxContent, setImportOfxContent] = useState(null);
     const [csvImportModalOpened, setCsvImportModalOpened] = useState(false);
+    const [ofxImportModalOpened, setOfxImportModalOpened] = useState(false);
 
     const addEditForm = useForm({
         initialValues: {
@@ -683,6 +685,27 @@ function Wallet({
             .finally(() => setLoading(false));
     };
 
+    const importFromOfx = () => {
+        uploadTextFile([".ofx"])
+            .then((content) => {
+                setImportOfxContent(content);
+                setOfxImportModalOpened(true);
+            })
+            .catch((error) => {
+                console.error(error);
+                showNotification({
+                    id: `import-error-notification-${uid()}`,
+                    disallowClose: true,
+                    autoClose: 5000,
+                    title: "Erreur d'importation!",
+                    message: "Impossible d'importer le fichier.",
+                    color: "red",
+                    icon: <IconX size={18} />,
+                    loading: false
+                });
+            });
+    };
+
     const exportToCsv = () => {
         setLoading(true);
 
@@ -745,20 +768,7 @@ function Wallet({
     const importFromCsv = () => {
         uploadTextFile([".csv"])
             .then((content) => {
-                /*openConfirmModal({
-                    title: "Analyse du fichier CSV",
-                    closeOnConfirm: false,
-                    labels: { confirm: "Suivant", cancel: "Annuler" },
-                    centered: true,
-                    overlayColor:
-                        app.theme.colorScheme === "dark" ? app.theme.colors.dark[9] : app.theme.colors.gray[2],
-                    overlayOpacity: 0.55,
-                    overlayBlur: 3,
-                    children: (
-                        
-                    )
-                });*/
-                setCsvContent(content);
+                setImportContent(content);
                 setCsvImportModalOpened(true);
             })
             .catch((error) => {
@@ -1038,7 +1048,7 @@ function Wallet({
     const focusTrapRef = useFocusTrap();
 
     const outsideRef = useClickOutside(() => {
-        if (!addEditModalOpened) setSelected([]);
+        //if (!addEditModalOpened) setSelected([]);
     });
 
     return (
@@ -1234,16 +1244,30 @@ function Wallet({
 
             <CsvImportModal
                 walletItem={walletItem}
-                csvContent={csvContent}
+                csvContent={importContent}
                 visible={csvImportModalOpened}
                 onClose={() => {
-                    setCsvContent(null);
+                    setImportContent(null);
                     setCsvImportModalOpened(false);
                 }}
                 onSaved={(savedIds) => {
                     app.refreshAmounts();
                     loadOpeList();
+                    setSelected(savedIds);
+                }}
+            />
 
+            <OfxImportModal
+                walletItem={walletItem}
+                ofxContent={importOfxContent}
+                visible={ofxImportModalOpened}
+                onClose={() => {
+                    setImportOfxContent(null);
+                    setOfxImportModalOpened(false);
+                }}
+                onSaved={(savedIds) => {
+                    app.refreshAmounts();
+                    loadOpeList();
                     setSelected(savedIds);
                 }}
             />
@@ -1444,14 +1468,17 @@ function Wallet({
                                         <Menu.Item
                                             icon={<IconFileText size={14} />}
                                             onClick={() => {
-                                                const content = importFromCsv();
-                                                if (content) {
-                                                }
+                                                importFromCsv();
                                             }}
                                         >
                                             Format CSV
                                         </Menu.Item>
-                                        <Menu.Item icon={<IconFilePercent size={14} />} onClick={() => {}}>
+                                        <Menu.Item
+                                            icon={<IconFilePercent size={14} />}
+                                            onClick={() => {
+                                                importFromOfx();
+                                            }}
+                                        >
                                             Format OFX
                                         </Menu.Item>
                                     </Menu.Dropdown>

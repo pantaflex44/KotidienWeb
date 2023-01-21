@@ -1,15 +1,12 @@
 import packagejson from "../../package.json";
 
-import dayjs from "dayjs";
-
 import React, { useContext, useEffect, useLayoutEffect, useState } from "react";
 
-import { Button, Code, Divider, Group, Modal, ScrollArea, Select, Space, Stack, Stepper, Text } from "@mantine/core";
-import { IconArrowLeft, IconBackspace, IconListDetails, IconThumbUp, IconX } from "@tabler/icons";
+import { Button, Group, Modal, Select, Stack, Stepper, Text } from "@mantine/core";
+import { IconArrowLeft, IconThumbUp, IconX } from "@tabler/icons";
 
 import { AppContext } from "./AppProvider";
 import { toSqlDate, uid } from "../../tools";
-import OpeList from "./OpeList";
 import OpeImportList from "./OpeImportList";
 import moment from "moment/moment";
 import { saveOperations } from "../wrappers/wallet_api";

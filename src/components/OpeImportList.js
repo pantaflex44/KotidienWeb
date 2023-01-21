@@ -56,10 +56,18 @@ function OpeImportItem({ item, onSelect = null, onUnselect = null, selected = fa
                 <Group
                     position={"left"}
                     spaincing="xs"
-                    style={{ flexWrap: "nowrap", cursor: "pointer" }}
-                    onClick={() => setIsExpanded((old) => !old)}
+                    style={{
+                        flexWrap: "nowrap",
+                        cursor: item.comment || item.thirdparty || item.paytype || item.category ? "pointer" : "default"
+                    }}
+                    onClick={() => {
+                        if (item.comment || item.thirdparty || item.paytype || item.category) {
+                            setIsExpanded((old) => !old);
+                        }
+                    }}
                 >
-                    {cloneElement(isExpanded ? <IconChevronUp /> : <IconChevronDown />, { size: 16 })}
+                    {(item.comment || item.thirdparty || item.paytype || item.category) &&
+                        cloneElement(isExpanded ? <IconChevronUp /> : <IconChevronDown />, { size: 16 })}
                     <Text color={"dimmed"} size={"xs"} align={"left"} style={{ minWidth: "65px" }}>
                         {shortDate}
                     </Text>
@@ -165,16 +173,20 @@ function OpeImportList({
 }) {
     const app = useContext(AppContext);
 
-    const minDate = dayjs(items.sort((a, b) => (a.date > b.date ? 1 : -1))[0].date).toDate();
-    const maxDate = dayjs(items.sort((a, b) => (a.date > b.date ? 1 : -1)).at(-1).date).toDate();
+    const minDate =
+        items.length > 0 ? dayjs(items.sort((a, b) => (a.date > b.date ? 1 : -1))[0].date).toDate() : new Date();
+    const maxDate =
+        items.length > 0 ? dayjs(items.sort((a, b) => (a.date > b.date ? 1 : -1)).at(-1).date).toDate() : new Date();
 
     const [rangeDate, setRangeDate] = useState([minDate, maxDate]);
 
     useEffect(() => {
         selected.map((id) => {
             const item = items.find((item) => item.id === id);
-            if (item.date < rangeDate[0] || item.date > rangeDate[1]) {
-                if (onUnselect) onUnselect(item);
+            if (item) {
+                if (item.date < rangeDate[0] || item.date > rangeDate[1]) {
+                    if (onUnselect) onUnselect(item);
+                }
             }
         });
     }, [rangeDate]);
@@ -241,22 +253,28 @@ function OpeImportList({
                 }}
                 type="auto"
             >
-                {items
-                    .filter((item) => item.date >= rangeDate[0] && item.date <= rangeDate[1])
-                    .sort((a, b) => (a.id > b.id ? -1 : 1))
-                    .sort((a, b) => (a.date > b.date ? -1 : 1))
-                    .map((item) => {
-                        return (
-                            <OpeImportItem
-                                key={item.id}
-                                item={item}
-                                selected={selected.includes(item.id)}
-                                onSelect={onSelect}
-                                onUnselect={onUnselect}
-                                disabled={disabled}
-                            />
-                        );
-                    })}
+                {items.length > 0 ? (
+                    items
+                        .filter((item) => item.date >= rangeDate[0] && item.date <= rangeDate[1])
+                        .sort((a, b) => (a.id > b.id ? -1 : 1))
+                        .sort((a, b) => (a.date > b.date ? -1 : 1))
+                        .map((item) => {
+                            return (
+                                <OpeImportItem
+                                    key={item.id}
+                                    item={item}
+                                    selected={selected.includes(item.id)}
+                                    onSelect={onSelect}
+                                    onUnselect={onUnselect}
+                                    disabled={disabled}
+                                />
+                            );
+                        })
+                ) : (
+                    <Text size={"xs"} color={"dimmed"} m={"xs"} align={"center"}>
+                        Aucune opération à importer!
+                    </Text>
+                )}
             </ScrollArea>
         </>
     );
