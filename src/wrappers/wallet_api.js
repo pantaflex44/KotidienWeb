@@ -41,6 +41,14 @@ export const saveOperation = async (email, data) => {
     return { saved: false, errorCode: 0, errorMessage: null, ...response.data };
 };
 
+export const saveOperations = async (email, operations) => {
+    const caller = api("/wallet/saveoperations", "POST");
+    const response = await caller.request({
+        body: encryptedData2body({ email, operations })
+    });
+    return { saved: false, errorCode: 0, errorMessage: null, ...response.data };
+};
+
 export const getAmountAt = async (email, walletId, date) => {
     const caller = api("/wallet/getamountat", "POST");
     const response = await caller.request({

@@ -6,6 +6,7 @@ import { defaultWalletCategories } from "../../defaults/walletCategories";
 
 import dayjs from "dayjs";
 import { jsPDF } from "jspdf";
+import ofx from "@wademason/ofx";
 
 import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
 
@@ -20,6 +21,7 @@ import {
     Modal,
     NumberInput,
     Select,
+    SimpleGrid,
     Space,
     Stack,
     Tabs,
@@ -41,6 +43,7 @@ import {
     IconCalendarEvent,
     IconCash,
     IconCategory,
+    IconCheckbox,
     IconCurrencyEuro,
     IconEdit,
     IconFileDownload,
@@ -70,6 +73,7 @@ import { AppContext } from "./AppProvider";
 import FiltersBar from "./FiltersBar";
 import WalletResumeBox from "./WalletResumeBox";
 import OpeList from "./OpeList";
+import CsvImportModal from "./CsvImportModal";
 
 import {
     currencyFormatter,
@@ -81,7 +85,8 @@ import {
     toSqlDate,
     uid,
     printData,
-    currencyRound
+    currencyRound,
+    uploadTextFile
 } from "../../tools";
 import { saveOperation, getOperations, deleteOperations, getAmountAt } from "../wrappers/wallet_api";
 
@@ -101,6 +106,8 @@ function Wallet({
     const [sorter, setSorter] = useState({ ...walletSorter });
     const [opeListItems, setOpeListItems] = useState([]);
     const [forceRefresh, setForceRefresh] = useState("");
+    const [csvContent, setCsvContent] = useState("");
+    const [csvImportModalOpened, setCsvImportModalOpened] = useState(false);
 
     const addEditForm = useForm({
         initialValues: {
@@ -529,7 +536,7 @@ function Wallet({
                         comment: item.comment,
                         amount: item.amount,
                         currency: "EUR",
-                        thirdparty: (itemFrom + " " + itemThirdparty).trim(),
+                        thirdparty: itemThirdparty,
                         category: itemCategory,
                         paytype: itemPaytype,
                         closed: item.state === 1
@@ -546,8 +553,6 @@ function Wallet({
 
         getPublicFormattedOperationsByDates(exportForm.values.startDate, exportForm.values.endDate)
             .then(async (operations) => {
-                let ofx = `<?xml version="1.0" encoding="UTF-8" standalone="no"?><?OFX OFXHEADER="200" VERSION="220" SECURITY="NONE" OLDFILEUID="NONE" NEWFILEUID="NONE"?>`;
-
                 const DTSERVER = dayjs().format("YYYYMMDD") + "000000";
                 const ORG = packagejson.name.trim().toLowerCase().capitalize();
                 const FID = packagejson.version;
@@ -563,41 +568,98 @@ function Wallet({
                 const DTSTART = dayjs(exportForm.values.startDate).format("YYYYMMDD") + "000000";
                 const DTEND = dayjs(exportForm.values.endDate).format("YYYYMMDD") + "000000";
 
-                ofx += `<OFX><SIGNONMSGSRSV1><SONRS><STATUS><CODE>0</CODE><SEVERITY>INFO</SEVERITY></STATUS><DTSERVER>${DTSERVER}</DTSERVER><LANGUAGE>FRA</LANGUAGE><FI><ORG>${ORG}</ORG><FID>${FID}</FID></FI></SONRS></SIGNONMSGSRSV1><BANKMSGSRSV1><STMTTRNRS><TRNUID>${TRNUID}</TRNUID><STATUS><CODE>0</CODE><SEVERITY>INFO</SEVERITY></STATUS><STMTRS><CURDEF>EUR</CURDEF><BANKACCTFROM><BANKID>${BANKID}</BANKID><ACCTID>${ACCTID}</ACCTID><ACCTTYPE>CHECKING</ACCTTYPE></BANKACCTFROM><BANKTRANLIST>`;
-                ofx += `<DTSTART>${DTSTART}</DTSTART><DTEND>${DTEND}</DTEND>`;
-
                 let lastDate = new Date(Date.parse("1970-01-01"));
-                operations.map((operation) => {
-                    const TRNTYPE = operation.type === "transfer" ? "XFER" : operation.amount < 0 ? "DEBIT" : "CREDIT";
-                    const DTPOSTED = dayjs(operation.date).format("YYYYMMDD") + "000000";
-                    const TRNAMT = currencyRound(operation.amount, 2);
-                    const FITID = operation.id;
-                    const NAME = (
-                        operation.title +
-                        " " +
-                        operation.thirdparty +
-                        " " +
-                        operation.category +
-                        " " +
-                        operation.paytype
-                    )
-                        .trim()
-                        .toUpperCase();
-                    const MEMO = operation.comment;
 
-                    ofx += `<STMTTRN><TRNTYPE>${TRNTYPE}</TRNTYPE><DTPOSTED>${DTPOSTED}</DTPOSTED><TRNAMT>${TRNAMT}</TRNAMT><FITID>${FITID}</FITID><NAME>${NAME}</NAME><MEMO>${MEMO}</MEMO><CURRENCY><CURRATE>1</CURRATE><CURSYM>EUR</CURSYM></CURRENCY></STMTTRN>`;
+                const ofxHeaders = {
+                    OFXHEADER: "100",
+                    DATA: "OFXSGML",
+                    VERSION: "102",
+                    SECURITY: "NONE",
+                    ENCODING: "USASCII",
+                    CHARSET: "1252",
+                    COMPRESSION: "NONE",
+                    OLDFILEUID: "NONE",
+                    NEWFILEUID: "NONE"
+                };
 
-                    if (new Date(Date.parse(operation.date)) > lastDate)
-                        lastDate = new Date(Date.parse(operation.date));
-                });
+                let ofxBody = {
+                    OFX: {
+                        SIGNONMSGSRSV1: {
+                            SONRS: {
+                                STATUS: {
+                                    CODE: "0",
+                                    SEVERITY: "INFO"
+                                },
+                                DTSERVER,
+                                LANGUAGE: "FRA",
+                                FI: {
+                                    ORG,
+                                    FID
+                                }
+                            }
+                        },
+                        BANKMSGSRSV1: {
+                            STMTTRNRS: {
+                                TRNUID,
+                                STATUS: {
+                                    CODE: "0",
+                                    SEVERITY: "INFO"
+                                },
+                                STMTRS: {
+                                    CURDEF: "EUR",
+                                    BANKACCTFROM: {
+                                        BANKID,
+                                        ACCTID,
+                                        ACCTTYPE: "CHECKING"
+                                    },
+                                    BANKTRANLIST: {
+                                        DTSTART,
+                                        DTEND,
+                                        STMTTRN: operations.map((item) => {
+                                            if (new Date(Date.parse(item.date)) > lastDate)
+                                                lastDate = new Date(Date.parse(item.date));
 
-                const totalAmount =
-                    walletItem.initialAmount +
-                    ((await getAmountAt(app.wallet.email, walletItem.id, lastDate))?.amount || 0);
-                const BALAMT = currencyRound(totalAmount, 2);
-                const DTASOF = dayjs(lastDate).format("YYYYMMDD") + "000000";
+                                            return {
+                                                TRNTYPE:
+                                                    item.type === "transfer"
+                                                        ? "XFER"
+                                                        : item.amount < 0
+                                                        ? "DEBIT"
+                                                        : "CREDIT",
+                                                DTPOSTED: dayjs(item.date).format("YYYYMMDD") + "000000",
+                                                TRNAMT: currencyRound(item.amount, 2),
+                                                FITID: item.id,
+                                                NAME: (
+                                                    item.title +
+                                                    " " +
+                                                    item.thirdparty +
+                                                    " " +
+                                                    item.category +
+                                                    " " +
+                                                    item.paytype
+                                                )
+                                                    .trim()
+                                                    .toUpperCase(),
+                                                MEMO: item.comment
+                                            };
+                                        })
+                                    },
+                                    LEDGERBAL: {
+                                        BALAMT: currencyRound(
+                                            walletItem.initialAmount +
+                                                ((await getAmountAt(app.wallet.email, walletItem.id, lastDate))
+                                                    ?.amount || 0),
+                                            2
+                                        ),
+                                        DTASOF: dayjs(lastDate).format("YYYYMMDD") + "000000"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                };
 
-                ofx += `</BANKTRANLIST><LEDGERBAL><BALAMT>${BALAMT}</BALAMT><DTASOF>${DTASOF}</DTASOF></LEDGERBAL></STMTRS></STMTTRNRS></BANKMSGSRSV1></OFX>`;
+                const ofxData = ofx.serialize(ofxHeaders, ofxBody);
 
                 const filename = `${packagejson.name.trim().toLowerCase().capitalize()}_${slugify(
                     walletItem.name
@@ -616,7 +678,7 @@ function Wallet({
                     loading: false
                 });
 
-                downloadFile(filename, ofx, false, "text/xml");
+                downloadFile(filename, ofxData, false, " application/x-ofx");
             })
             .finally(() => setLoading(false));
     };
@@ -678,6 +740,40 @@ function Wallet({
                 downloadFile(filename, csv, false, "text/csv");
             })
             .finally(() => setLoading(false));
+    };
+
+    const importFromCsv = () => {
+        uploadTextFile([".csv"])
+            .then((content) => {
+                /*openConfirmModal({
+                    title: "Analyse du fichier CSV",
+                    closeOnConfirm: false,
+                    labels: { confirm: "Suivant", cancel: "Annuler" },
+                    centered: true,
+                    overlayColor:
+                        app.theme.colorScheme === "dark" ? app.theme.colors.dark[9] : app.theme.colors.gray[2],
+                    overlayOpacity: 0.55,
+                    overlayBlur: 3,
+                    children: (
+                        
+                    )
+                });*/
+                setCsvContent(content);
+                setCsvImportModalOpened(true);
+            })
+            .catch((error) => {
+                console.error(error);
+                showNotification({
+                    id: `import-error-notification-${uid()}`,
+                    disallowClose: true,
+                    autoClose: 5000,
+                    title: "Erreur d'importation!",
+                    message: "Impossible d'importer le fichier.",
+                    color: "red",
+                    icon: <IconX size={18} />,
+                    loading: false
+                });
+            });
     };
 
     const exportToPdf = (print = false) => {
@@ -1136,6 +1232,22 @@ function Wallet({
                 </Group>
             </Modal>
 
+            <CsvImportModal
+                walletItem={walletItem}
+                csvContent={csvContent}
+                visible={csvImportModalOpened}
+                onClose={() => {
+                    setCsvContent(null);
+                    setCsvImportModalOpened(false);
+                }}
+                onSaved={(savedIds) => {
+                    app.refreshAmounts();
+                    loadOpeList();
+
+                    setSelected(savedIds);
+                }}
+            />
+
             <Stack>
                 {useMemo(
                     () => (
@@ -1310,7 +1422,7 @@ function Wallet({
                                         disabled={loading || opeListItems.length === 0}
                                     >
                                         {selected.length === 0 ? (
-                                            <IconSquareCheck size={16} stroke={2} />
+                                            <IconCheckbox size={16} stroke={2} />
                                         ) : selected.length === opeListItems.length ? (
                                             <IconSquare size={16} stroke={2} />
                                         ) : (
@@ -1329,7 +1441,19 @@ function Wallet({
                                     </Menu.Target>
                                     <Menu.Dropdown>
                                         <Menu.Label>Importer au format</Menu.Label>
-                                        <Menu.Item icon={<IconFileText size={14} />}>CSV</Menu.Item>
+                                        <Menu.Item
+                                            icon={<IconFileText size={14} />}
+                                            onClick={() => {
+                                                const content = importFromCsv();
+                                                if (content) {
+                                                }
+                                            }}
+                                        >
+                                            Format CSV
+                                        </Menu.Item>
+                                        <Menu.Item icon={<IconFilePercent size={14} />} onClick={() => {}}>
+                                            Format OFX
+                                        </Menu.Item>
                                     </Menu.Dropdown>
                                 </Menu>
                                 <Menu

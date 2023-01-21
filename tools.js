@@ -543,7 +543,34 @@ const utf8ToAscii = (str) => {
 
 const currencyRound = (value, decimals = 2) => {
     return Number(Math.round(value + "e" + decimals) + "e-" + decimals);
-}
+};
+
+const uploadTextFile = (extensions = ["*"], multiple = null) => {
+    return new Promise((resolve, reject) => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = extensions.join(",");
+        input.multiple = multiple;
+
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+
+            const reader = new FileReader();
+            reader.readAsText(file, "UTF-8");
+
+            reader.onload = (readerEvent) => {
+                const content = readerEvent.target.result;
+                resolve(content);
+            };
+
+            reader.onerror = (error) => {
+                reject(error);
+            };
+        };
+
+        input.click();
+    });
+};
 
 module.exports = {
     slugify,
@@ -580,5 +607,6 @@ module.exports = {
     downloadFile,
     printData,
     utf8ToAscii,
-    currencyRound
+    currencyRound,
+    uploadTextFile
 };

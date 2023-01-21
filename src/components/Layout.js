@@ -166,7 +166,16 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                                 {app.walletToolbarItems.length > 0 && (
                                                     <Menu shadow={"sm"} width={300} withArrow={true}>
                                                         <Menu.Target>
-                                                            <Button variant={"subtle"} color={"dark.9"} m={0} px={"xs"}>
+                                                            <Button
+                                                                variant={"subtle"}
+                                                                color={
+                                                                    app.theme.colorScheme === "dark"
+                                                                        ? "light.9"
+                                                                        : "dark.9"
+                                                                }
+                                                                m={0}
+                                                                px={"xs"}
+                                                            >
                                                                 <Group spacing={4}>
                                                                     <IconSettings2 size={18} stroke={1.5} />
                                                                     <Text fw={400} size={"xs"}>
@@ -179,7 +188,11 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                                             <Menu.Label>Paramètres</Menu.Label>
                                                             {app.walletToolbarItems.map((item, idx) => (
                                                                 <Menu.Item
-                                                                    color={item.color || "dark.9"}
+                                                                    color={
+                                                                        item.color || app.theme.colorScheme === "dark"
+                                                                            ? "light.9"
+                                                                            : "dark.9"
+                                                                    }
                                                                     onClick={item.callback}
                                                                     icon={cloneElement(item.icon || <IconAlien />, {
                                                                         size: 14,
@@ -192,7 +205,11 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                                             ))}
                                                             <Menu.Divider />
                                                             <Menu.Item
-                                                                color={"teal.9"}
+                                                                color={
+                                                                    app.theme.colorScheme === "dark"
+                                                                        ? "teal.5"
+                                                                        : "teal.9"
+                                                                }
                                                                 onClick={() => {
                                                                     if (app.expectedSaving) {
                                                                         openConfirmModal({
@@ -244,7 +261,14 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                                 )}
                                                 <Menu shadow={"sm"} width={300} withArrow={true}>
                                                     <Menu.Target>
-                                                        <Button variant={"subtle"} color={"dark.9"} m={0} px={"xs"}>
+                                                        <Button
+                                                            variant={"subtle"}
+                                                            color={
+                                                                app.theme.colorScheme === "dark" ? "light.9" : "dark.9"
+                                                            }
+                                                            m={0}
+                                                            px={"xs"}
+                                                        >
                                                             <Group spacing={4}>
                                                                 <IconHelp size={18} stroke={1.5} />
                                                                 <Text fw={400} size={"xs"}>
@@ -257,7 +281,11 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                                         <Menu.Label>Aide et Informations</Menu.Label>
                                                         {window && (
                                                             <Menu.Item
-                                                                color={"dark.9"}
+                                                                color={
+                                                                    app.theme.colorScheme === "dark"
+                                                                        ? "light.9"
+                                                                        : "dark.9"
+                                                                }
                                                                 onClick={() => {
                                                                     window
                                                                         .open(
@@ -272,7 +300,9 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                                             </Menu.Item>
                                                         )}
                                                         <Menu.Item
-                                                            color={"dark.9"}
+                                                            color={
+                                                                app.theme.colorScheme === "dark" ? "light.9" : "dark.9"
+                                                            }
                                                             onClick={() => setShortcutsOpened(true)}
                                                             icon={<IconKeyboard size={14} stroke={1.5} />}
                                                         >
@@ -280,7 +310,9 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                                         </Menu.Item>
                                                         <Menu.Divider />
                                                         <Menu.Item
-                                                            color={"dark.9"}
+                                                            color={
+                                                                app.theme.colorScheme === "dark" ? "light.9" : "dark.9"
+                                                            }
                                                             onClick={() => setAboutOpened(true)}
                                                             icon={<IconInfoCircle size={14} stroke={1.5} />}
                                                         >
@@ -288,7 +320,7 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                                         </Menu.Item>
                                                         <Menu.Divider />
                                                         <Menu.Item
-                                                            color={"red.9"}
+                                                            color={app.theme.colorScheme === "dark" ? "red.5" : "red.9"}
                                                             onClick={() => setDeletionOpened(true)}
                                                             icon={<IconTrashX size={14} stroke={1.5} />}
                                                         >

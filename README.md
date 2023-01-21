@@ -69,7 +69,7 @@ Kotidien est sous licence libre et open-source. Cette licence vous permet de red
 
 ## Librairies utilisées
 
-[ReactJs](https://fr.reactjs.org/) , [Mantine](https://mantine.dev/) , [Tabler Icons](https://tabler-icons.io/) , [Webpack](https://webpack.js.org/) , [BabelJs](https://babeljs.io/) , [NodeJs](https://nodejs.org/fr/) , [ExpressJs](https://expressjs.com/fr/) , [Sql.js](https://github.com/sql-js/sql.js/) , [DayJs](https://day.js.org/) , [jsPdf](https://github.com/parallax/jsPDF), [ofx](https://github.com/chilts/node-ofx)
+[ReactJs](https://fr.reactjs.org/) , [Mantine](https://mantine.dev/) , [Tabler Icons](https://tabler-icons.io/) , [Webpack](https://webpack.js.org/) , [BabelJs](https://babeljs.io/) , [NodeJs](https://nodejs.org/fr/) , [ExpressJs](https://expressjs.com/fr/) , [Sql.js](https://github.com/sql-js/sql.js/) , [DayJs](https://day.js.org/) , [jsPdf](https://github.com/parallax/jsPDF), [@wademason/ofx](https://github.com/WadeMason/ofx)
 
 ## Captures d'écran
 
@@ -100,6 +100,16 @@ Kotidien est sous licence libre et open-source. Cette licence vous permet de red
 
 ![Liste des opérations](./screenshots/screenshot-opelist.png "Liste des opérations")
 *Liste des opérations*
+
+---
+
+![Menu d'exportations](./screenshots/screenshot-exportmenu.png "Menu d'exportations")
+*Menu d'exportations*
+
+---
+
+![Importation CSV](./screenshots/screenshot-csvimport.png "Importation CSV")
+*Importation CSV*
 
 ---
 

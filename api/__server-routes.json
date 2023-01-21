@@ -20,6 +20,10 @@
         "controller": "./controllers/wallet/saveoperation.js"
     },
     {
+        "path": "/api/wallet/saveoperations",
+        "controller": "./controllers/wallet/saveoperations.js"
+    },
+    {
         "path": "/api/wallet/getamountat",
         "controller": "./controllers/wallet/getamountat.js"
     },

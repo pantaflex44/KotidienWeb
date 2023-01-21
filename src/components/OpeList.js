@@ -43,7 +43,9 @@ function OpeList({
     onSelect = null,
     onUnselect = null,
     onUnselectAll = null,
-    onKeyDown = null
+    onKeyDown = null,
+    showAmountsDetails = true,
+    showTotalAmounts = true
 }) {
     const app = useContext(AppContext);
     const [sortedItems, setSortedItems] = useState({});
@@ -265,7 +267,8 @@ function OpeList({
                         styles={(theme) => ({
                             itemTitle: {
                                 color: theme.colorScheme === "dark" ? theme.colors.gray[6] : theme.colors.gray[6],
-                                fontSize: "smaller"
+                                fontSize: "smaller",
+                                marginBottom: "0.3rem"
                             }
                         })}
                         data-autofocus
@@ -345,62 +348,69 @@ function OpeList({
                                                 {operationCounter > 1 ? "s" : ""}
                                             </Text>
                                         </Group>
-                                        <Group spacing={"xs"} style={{ flexWrap: "nowrap" }}>
-                                            {totalAmounts[k] ? (
-                                                <Currency
-                                                    amount={totalAmounts[k]}
-                                                    currency={walletItem.currency}
-                                                    size={"xs"}
-                                                    fw={700}
-                                                    color={"brand.5"}
-                                                />
-                                            ) : (
-                                                <Text size={"xs"}>-</Text>
-                                            )}
-                                        </Group>
 
-                                        <MediaQuery smallerThan={"sm"} styles={{ display: "none" }}>
-                                            <Group spacing={4} style={{ flexWrap: "nowrap" }}>
-                                                <Text color={"dimmed"} size={"xs"} lineClamp={1} fw={700}>
-                                                    ↓
-                                                </Text>
-                                                <Currency
-                                                    amount={win}
-                                                    currency={walletItem.currency}
-                                                    useColor={false}
-                                                    color={"dimmed"}
-                                                    size={"xs"}
-                                                />
-                                            </Group>
-                                        </MediaQuery>
-                                        <MediaQuery smallerThan={"sm"} styles={{ display: "none" }}>
-                                            <Group spacing={4} style={{ flexWrap: "nowrap" }}>
-                                                <Text color={"dimmed"} size={"xs"} lineClamp={1} fw={700}>
-                                                    ↑
-                                                </Text>
-                                                <Currency
-                                                    amount={lose}
-                                                    currency={walletItem.currency}
-                                                    useColor={false}
-                                                    color={"dimmed"}
-                                                    size={"xs"}
-                                                />
-                                            </Group>
-                                        </MediaQuery>
-                                        <MediaQuery smallerThan={"sm"} styles={{ display: "none" }}>
-                                            <Group spacing={4} style={{ flexWrap: "nowrap" }}>
-                                                <Text color={"dimmed"} size={"xs"} lineClamp={1} fw={700}>
-                                                    ↔
-                                                </Text>
-                                                <Currency
-                                                    amount={total}
-                                                    currency={walletItem.currency}
-                                                    useColor={false}
-                                                    color={"dimmed"}
-                                                    size={"xs"}
-                                                />
-                                            </Group>
-                                        </MediaQuery>
+                                        {showAmountsDetails && (
+                                            <>
+                                                {showTotalAmounts && (
+                                                    <Group spacing={"xs"} style={{ flexWrap: "nowrap" }}>
+                                                        {totalAmounts[k] ? (
+                                                            <Currency
+                                                                amount={totalAmounts[k]}
+                                                                currency={walletItem.currency}
+                                                                size={"xs"}
+                                                                fw={700}
+                                                                color={"brand.5"}
+                                                            />
+                                                        ) : (
+                                                            <Text size={"xs"}>-</Text>
+                                                        )}
+                                                    </Group>
+                                                )}
+
+                                                <MediaQuery smallerThan={"sm"} styles={{ display: "none" }}>
+                                                    <Group spacing={4} style={{ flexWrap: "nowrap" }}>
+                                                        <Text color={"dimmed"} size={"xs"} lineClamp={1} fw={700}>
+                                                            ↓
+                                                        </Text>
+                                                        <Currency
+                                                            amount={win}
+                                                            currency={walletItem.currency}
+                                                            useColor={false}
+                                                            color={"dimmed"}
+                                                            size={"xs"}
+                                                        />
+                                                    </Group>
+                                                </MediaQuery>
+                                                <MediaQuery smallerThan={"sm"} styles={{ display: "none" }}>
+                                                    <Group spacing={4} style={{ flexWrap: "nowrap" }}>
+                                                        <Text color={"dimmed"} size={"xs"} lineClamp={1} fw={700}>
+                                                            ↑
+                                                        </Text>
+                                                        <Currency
+                                                            amount={lose}
+                                                            currency={walletItem.currency}
+                                                            useColor={false}
+                                                            color={"dimmed"}
+                                                            size={"xs"}
+                                                        />
+                                                    </Group>
+                                                </MediaQuery>
+                                                <MediaQuery smallerThan={"sm"} styles={{ display: "none" }}>
+                                                    <Group spacing={4} style={{ flexWrap: "nowrap" }}>
+                                                        <Text color={"dimmed"} size={"xs"} lineClamp={1} fw={700}>
+                                                            ↔
+                                                        </Text>
+                                                        <Currency
+                                                            amount={total}
+                                                            currency={walletItem.currency}
+                                                            useColor={false}
+                                                            color={"dimmed"}
+                                                            size={"xs"}
+                                                        />
+                                                    </Group>
+                                                </MediaQuery>
+                                            </>
+                                        )}
                                     </Group>
 
                                     <Collapse
@@ -465,6 +475,7 @@ function OpeList({
                                             return (
                                                 <Box
                                                     mt={0}
+                                                    py={0}
                                                     key={item.id}
                                                     style={{
                                                         cursor: "pointer"
@@ -497,15 +508,15 @@ function OpeList({
                                                     }}
                                                     onClick={() => toggleSelection()}
                                                 >
-                                                    <Group spacing={0} position={"apart"} style={{ minHeight: "60px" }}>
-                                                        <Group spacing={"xs"}>
+                                                    <Group spacing={0} position={"apart"} style={{ minHeight: "50px" }}>
+                                                        <Group spacing={0}>
                                                             <Group spacing={0} style={{ flexWrap: "nowrap" }}>
                                                                 <Stack
                                                                     justify={"flex-start"}
                                                                     align={"flex-start"}
                                                                     spacing={0}
                                                                     style={{ width: "400px" }}
-                                                                    py={"xs"}
+                                                                    py={7}
                                                                     px={"xs"}
                                                                 >
                                                                     <Group

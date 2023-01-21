@@ -181,6 +181,50 @@ const saveOperation = (data) => {
     }
 };
 
+const saveOperations = (data) => {
+    try {
+        const { email, operations } = data;
+
+        if (!Array.isArray(operations)) return false;
+
+        const db = new Db(getWalletFile(email));
+        const saved = db
+            .open()
+            .then((conn) => {
+                conn.run("BEGIN TRANSACTION;");
+
+                operations.map((ope) => {
+                    const query = `REPLACE INTO Operations (${Object.keys(ope).join(", ")}) VALUES (${Object.keys(ope)
+                        .map((k) => `:${k}`)
+                        .join(", ")})`;
+                    const values = Object.fromEntries(Object.keys(ope).map((k) => [[`:${k}`], ope[k]]));
+
+                    conn.run(query, values);
+                });
+
+                conn.run("COMMIT;");
+
+                db.save();
+                db.close();
+
+                return true;
+            })
+            .catch((err) => {
+                db.close();
+                console.error(err);
+                return false;
+            })
+            .finally(() => {
+                db.close();
+            });
+
+        return saved;
+    } catch (err) {
+        console.error(err);
+        return false;
+    }
+};
+
 const getAmountAt = (data) => {
     try {
         const { email, walletId, date } = data;
@@ -352,6 +396,7 @@ module.exports = {
     openWalletMetas,
     saveWalletMetas,
     saveOperation,
+    saveOperations,
     getAmountAt,
     getOperations,
     deleteOperations,
