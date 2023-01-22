@@ -56,7 +56,7 @@ const createWallet = ({ email, password, name, note, walletItems, categories, pa
                     sorters: {
                         walletItemView: {}
                     },
-                    views: { showResumeBox: true, extendOperations: true }
+                    views: { showResumeBox: true, extendOperations: true, walletTab: "calendar" }
                 },
                 walletKey: secureKey.generate(32),
                 version: packagejson.version

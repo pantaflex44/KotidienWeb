@@ -9,6 +9,7 @@ import {
     Grid,
     Group,
     Modal,
+    Select,
     Stack,
     Switch,
     Tabs,
@@ -35,6 +36,7 @@ function SettingsModal({
     settings = {
         views_showResumeBox: false,
         views_extendOperations: false,
+        views_walletTab: "calendar",
         csv_separators_columns: ";",
         csv_separators_decimals: ",",
         csv_dateformat: "DD/MM/YYYY"
@@ -52,6 +54,7 @@ function SettingsModal({
         initialValues: {
             views_showResumeBox: settings.views_showResumeBox,
             views_extendOperations: settings.views_extendOperations,
+            views_walletTab: settings.views_walletTab,
             csv_separators_columns: settings.csv_separators_columns,
             csv_separators_decimals: settings.csv_separators_decimals,
             csv_dateformat: settings.csv_dateformat
@@ -87,7 +90,8 @@ function SettingsModal({
                         views_extendOperations: propsForm.values.views_extendOperations,
                         csv_separators_columns: propsForm.values.csv_separators_columns,
                         csv_separators_decimals: propsForm.values.csv_separators_decimals,
-                        csv_dateformat: propsForm.values.csv_dateformat
+                        csv_dateformat: propsForm.values.csv_dateformat,
+                        views_walletTab: propsForm.values.views_walletTab
                     };
 
                     onChange(np);
@@ -130,7 +134,7 @@ function SettingsModal({
                             Importation / Exportation
                         </Tabs.Tab>
                         <Tabs.Tab value="opelist" icon={<IconListDetails size={14} />}>
-                            Liste des opérations
+                            Ergonomie
                         </Tabs.Tab>
                     </Tabs.List>
 
@@ -271,7 +275,18 @@ function SettingsModal({
 
                     <Tabs.Panel value="opelist" py="md">
                         <Stack spacing={"md"} mb={"md"}>
-                            <Title order={5}>Affichage</Title>
+                            <Title order={5}>Dispositions</Title>
+                            <Select
+                                label={"Onglet par défaut"}
+                                description={"Paramètre pris en compte à votre prochaine connexion."}
+                                data={[
+                                    { value: "details", label: "Détails du compte" },
+                                    { value: "calendar", label: "Calendrier" },
+                                    { value: "planner", label: "Planification" }
+                                ]}
+                                clearable={false}
+                                {...propsForm.getInputProps("views_walletTab")}
+                            />
                             <Switch
                                 mt={"xs"}
                                 label={"Afficher la boite de résumé"}
@@ -280,7 +295,7 @@ function SettingsModal({
                             />
                             <Switch
                                 label={"Par défaut, étendre toutes les opérations"}
-                                description={"Paramètre appliqué à chaque ouverture de votre portefeuille."}
+                                description={"Paramètre pris en compte à votre prochaine connexion."}
                                 {...propsForm.getInputProps("views_extendOperations", { type: "checkbox" })}
                             />
                         </Stack>

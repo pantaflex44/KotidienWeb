@@ -57,7 +57,7 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                 ? app.wallet.params?.csv?.separators?.columns === null ||
                   app.wallet.params?.csv?.separators?.columns === undefined
                     ? ";"
-                    : app.wallet.params.csv.separators.columns
+                    : app.wallet.params?.csv?.separators.columns
                 : ";",
             csv_separators_decimals: app.wallet
                 ? app.wallet.params?.csv?.separators?.decimals === null ||
@@ -74,14 +74,19 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                 ? app.wallet.params?.views?.showResumeBox === null ||
                   app.wallet.params?.views?.showResumeBox === undefined
                     ? true
-                    : app.wallet.params.views.showResumeBox === true
+                    : app.wallet.params?.views?.showResumeBox === true
                 : true,
             views_extendOperations: app.wallet
                 ? app.wallet.params?.views?.extendOperations === null ||
                   app.wallet.params?.views?.extendOperations === undefined
                     ? true
-                    : app.wallet.params.views.extendOperations === true
-                : true
+                    : app.wallet.params?.views?.extendOperations === true
+                : true,
+            views_walletTab: app.wallet
+                ? app.wallet.params?.views?.walletTab === null || app.wallet.params?.views?.walletTab === undefined
+                    ? "calendar"
+                    : app.wallet.params?.views?.walletTab
+                : "calendar"
         }),
         [app.wallet?.params]
     );

@@ -1163,7 +1163,10 @@ function Wallet({
         [opeListItems, loading, app.currentDate, walletItem, selected, forceRefresh]
     );
 
-    const memoizedCalendarView = useMemo(() => <CalendarView items={opeListItems} />, [opeListItems]);
+    const memoizedCalendarView = useMemo(
+        () => <CalendarView walletItem={walletItem} items={opeListItems} />,
+        [opeListItems, walletItem]
+    );
 
     return (
         <>
@@ -1378,7 +1381,7 @@ function Wallet({
                 {memoizedResumebox}
 
                 <Tabs
-                    defaultValue={"details"}
+                    defaultValue={app.wallet?.params?.views?.walletTab || "calendar"}
                     sx={{ display: "flex", flexDirection: "column", minHeight: "100%" }}
                     ref={focusTrapRef}
                     keepMounted={false}
