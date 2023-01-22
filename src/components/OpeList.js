@@ -1,40 +1,13 @@
-import packagejson from "../../package.json";
-
-import { getDatePattern, strToColor } from "../../tools";
-import dayjs from "dayjs";
 import { getAmountAt } from "../wrappers/wallet_api";
 import { useHotkeys } from "@mantine/hooks";
 
-import React, { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import {
-    Box,
-    Collapse,
-    Divider,
-    Group,
-    LoadingOverlay,
-    MediaQuery,
-    Stack,
-    Text,
-    Timeline,
-    Tooltip
-} from "@mantine/core";
+import { Group, LoadingOverlay, Stack, Text } from "@mantine/core";
 
-import {
-    IconArrowDown,
-    IconArrowMoveRight,
-    IconArrowUp,
-    IconArrowsMoveHorizontal,
-    IconChevronDown,
-    IconChevronUp,
-    IconReceipt,
-    IconSquare,
-    IconSquareCheck
-} from "@tabler/icons";
+import { IconChevronDown, IconChevronUp } from "@tabler/icons";
 
 import { AppContext } from "./AppProvider";
-import Currency from "./Currency";
-import OpeListItem from "./OpeListItem";
 import OpeListItems from "./OpeListItems";
 
 function OpeList({
@@ -47,7 +20,8 @@ function OpeList({
     onUnselectAll = null,
     onKeyDown = null,
     showAmountsDetails = true,
-    showTotalAmounts = true
+    showTotalAmounts = true,
+    onDateAppear = null
 }) {
     const app = useContext(AppContext);
     const [sortedItems, setSortedItems] = useState({});
@@ -252,6 +226,7 @@ function OpeList({
                     showTotalAmounts={showTotalAmounts}
                     collapsible={collapsible}
                     setCollapsible={setCollapsible}
+                    onDateAppear={onDateAppear}
                 />
             )),
         [sortedItems, selected, totalAmounts, collapsible, showAmountsDetails, showTotalAmounts]

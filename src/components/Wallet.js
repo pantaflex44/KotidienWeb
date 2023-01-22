@@ -31,7 +31,7 @@ import {
 import { DatePicker } from "@mantine/dates";
 import { closeAllModals, openConfirmModal } from "@mantine/modals";
 import { useForm } from "@mantine/form";
-import { useClickOutside, useFocusTrap, useHotkeys } from "@mantine/hooks";
+import { useClickOutside, useDebouncedState, useFocusTrap, useHotkeys } from "@mantine/hooks";
 import { showNotification } from "@mantine/notifications";
 
 import {
@@ -89,6 +89,7 @@ import {
     uploadTextFile
 } from "../../tools";
 import { saveOperation, getOperations, deleteOperations, getAmountAt } from "../wrappers/wallet_api";
+import CalendarView from "./CalendarView";
 
 function Wallet({
     walletItem,
@@ -109,6 +110,7 @@ function Wallet({
     const [importOfxContent, setImportOfxContent] = useState(null);
     const [csvImportModalOpened, setCsvImportModalOpened] = useState(false);
     const [ofxImportModalOpened, setOfxImportModalOpened] = useState(false);
+    const [appearedDate, setAppearedDate] = useDebouncedState(null, 500);
 
     const addEditForm = useForm({
         initialValues: {
@@ -1137,6 +1139,13 @@ function Wallet({
         setSelected([]);
     };
 
+    const changeAppearedDate = useCallback(
+        (date) => {
+            setAppearedDate(date);
+        },
+        [appearedDate]
+    );
+
     const memoizedItems = useMemo(
         () => (
             <OpeList
@@ -1148,10 +1157,13 @@ function Wallet({
                 onUnselect={unselectOperations}
                 onUnselectAll={unselectAll}
                 loading={loading}
+                onDateAppear={changeAppearedDate}
             />
         ),
         [opeListItems, loading, app.currentDate, walletItem, selected, forceRefresh]
     );
+
+    const memoizedCalendarView = useMemo(() => <CalendarView items={opeListItems} />, [opeListItems]);
 
     return (
         <>
@@ -1382,6 +1394,7 @@ function Wallet({
                             Planification
                         </Tabs.Tab>
                     </Tabs.List>
+
                     <Tabs.Panel value={"details"} pt={"md"} sx={{ flex: "1 1 auto" }} ref={outsideRef}>
                         <Stack>
                             <Group
@@ -1537,7 +1550,7 @@ function Wallet({
                                             Format CSV
                                         </Menu.Item>
                                         <Menu.Item icon={<IconFilePercent size={14} />} onClick={importFromOfx}>
-                                            Format OFX
+                                            Format OFXimport CalendarView from './CalendarView';
                                         </Menu.Item>
                                     </Menu.Dropdown>
                                 </Menu>
@@ -1693,8 +1706,16 @@ function Wallet({
                             {memoizedItems}
                         </Stack>
                     </Tabs.Panel>
-                    <Tabs.Panel value="calendar" pt={"md"} sx={{ flex: "1 1 auto" }}></Tabs.Panel>
-                    <Tabs.Panel value="planner" pt={"md"} sx={{ flex: "1 1 auto" }}></Tabs.Panel>
+
+                    <Tabs.Panel value="calendar" pt={"md"} sx={{ flex: "1 1 auto" }}>
+                        {memoizedCalendarView}
+                    </Tabs.Panel>
+
+                    <Tabs.Panel
+                        value="planner"
+                        pt={"md"}
+                        sx={{ flex: "1 1 auto", display: "flex", flexDirection: "column", minHeight: "100%" }}
+                    ></Tabs.Panel>
                 </Tabs>
             </Stack>
         </>

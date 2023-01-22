@@ -1,5 +1,3 @@
-import packagejson from "../../package.json";
-
 import React, { createRef, memo, useContext, useEffect, useMemo } from "react";
 
 import { Box, Divider, Group, Stack, Text, Tooltip } from "@mantine/core";

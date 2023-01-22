@@ -1,38 +1,16 @@
 import packagejson from "../../package.json";
 
-import { getDatePattern, strToColor } from "../../tools";
+import { getDatePattern } from "../../tools";
 import dayjs from "dayjs";
-import { getAmountAt } from "../wrappers/wallet_api";
-import { useHotkeys } from "@mantine/hooks";
+import moment from "moment";
+import useIntersectionObserver from "../hooks/useIntersectionObserver";
 
-import React, { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import React, { memo, useEffect, useLayoutEffect, useMemo, useState } from "react";
 
-import {
-    Box,
-    Collapse,
-    Divider,
-    Group,
-    LoadingOverlay,
-    MediaQuery,
-    Stack,
-    Text,
-    Timeline,
-    Tooltip
-} from "@mantine/core";
+import { Box, Collapse, Divider, Group, MediaQuery, Text } from "@mantine/core";
 
-import {
-    IconArrowDown,
-    IconArrowMoveRight,
-    IconArrowUp,
-    IconArrowsMoveHorizontal,
-    IconChevronDown,
-    IconChevronUp,
-    IconReceipt,
-    IconSquare,
-    IconSquareCheck
-} from "@tabler/icons";
+import { IconChevronDown, IconChevronUp } from "@tabler/icons";
 
-import { AppContext } from "./AppProvider";
 import Currency from "./Currency";
 import OpeListItem from "./OpeListItem";
 
@@ -48,11 +26,16 @@ function OpeListItems({
     showAmountsDetails = true,
     showTotalAmounts = true,
     collapsible = {},
-    setCollapsible = () => {}
+    setCollapsible = () => {},
+    onDateAppear = null
 }) {
     const [details, setDetails] = useState({ win: 0, lose: 0, total: 0 });
     const [longDate, setLongDate] = useState("");
     const [isExpanded, setIsExpanded] = useState(false);
+    const [sectionRef, sectionIsVisible] = useIntersectionObserver({
+        threshold: 0.5,
+        rootMargin: "-200px 0px -50px 0px"
+    });
 
     useLayoutEffect(() => {
         const win = items.map((i) => (i.amount < 0 ? i.amount : 0)).reduce((a, b) => a + b, 0);
@@ -116,8 +99,12 @@ function OpeListItems({
         [items, selected]
     );
 
+    useEffect(() => {
+        if (sectionIsVisible && onDateAppear) onDateAppear(moment(date, "YYYY-MM-DD").toDate());
+    }, [sectionIsVisible]);
+
     return (
-        <Box onKeyDown={onKeyDown}>
+        <Box onKeyDown={onKeyDown} ref={sectionRef}>
             <Group
                 position={"apart"}
                 spacing={"xl"}
@@ -216,7 +203,8 @@ export default memo(
     (p, n) =>
         p.date === n.date &&
         JSON.stringify(p.items) === JSON.stringify(n.items) &&
-        JSON.stringify(p.selected) === JSON.stringify(n.selected) &&
+        JSON.stringify(p.items.filter((pi) => p.selected.includes(pi.id))) ===
+            JSON.stringify(n.items.filter((ni) => n.selected.includes(ni.id))) &&
         JSON.stringify(p.collapsible) === JSON.stringify(n.collapsible) &&
         JSON.stringify(p.totalAmounts) === JSON.stringify(n.totalAmounts)
 );
