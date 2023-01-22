@@ -3,7 +3,7 @@ import { defaultWalletCategories } from "../../defaults/walletCategories";
 import defaultWalletItemViewFilter from "../../defaults/walletItemViewFilter";
 import defaultWalletItemViewSorter from "../../defaults/walletItemViewSorter";
 
-import React, { cloneElement, lazy, Suspense, useContext, useEffect, useMemo, useState } from "react";
+import React, { cloneElement, lazy, memo, Suspense, useContext, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Text, Group, Loader, Stack, NavLink, Divider, Space, Title, Tooltip } from "@mantine/core";
@@ -318,4 +318,4 @@ function Dashboard() {
     );
 }
 
-export default Dashboard;
+export default memo(Dashboard);

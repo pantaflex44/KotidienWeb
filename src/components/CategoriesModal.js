@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from "react";
+import React, { memo, useContext, useEffect, useState } from "react";
 
 import { Button, Group, Modal, Stack } from "@mantine/core";
 
@@ -38,4 +38,7 @@ function CategoriesModal({ categories = [], visible = false, initialValue = fals
     );
 }
 
-export default CategoriesModal;
+export default memo(
+    CategoriesModal,
+    (p, n) => JSON.stringify(p.categories) === JSON.stringify(n.categories) && p.visible === n.visible
+);

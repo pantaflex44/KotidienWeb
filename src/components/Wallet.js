@@ -8,7 +8,7 @@ import dayjs from "dayjs";
 import { jsPDF } from "jspdf";
 import ofx from "@wademason/ofx";
 
-import React, { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useState } from "react";
 
 import {
     ActionIcon,
@@ -73,6 +73,7 @@ import FiltersBar from "./FiltersBar";
 import WalletResumeBox from "./WalletResumeBox";
 import OpeList from "./OpeList";
 import CsvImportModal from "./CsvImportModal";
+import OfxImportModal from "./OfxImportModal";
 
 import {
     currencyFormatter,
@@ -88,13 +89,11 @@ import {
     uploadTextFile
 } from "../../tools";
 import { saveOperation, getOperations, deleteOperations, getAmountAt } from "../wrappers/wallet_api";
-import OfxImportModal from "./OfxImportModal";
 
 function Wallet({
     walletItem,
     walletFilters = defaultWalletItemViewFilter,
-    walletSorter = defaultWalletItemViewSorter,
-    id = uid()
+    walletSorter = defaultWalletItemViewSorter
 }) {
     const app = useContext(AppContext);
     const [addEditModalOpened, setAddEditModalOpened] = useState(false);
@@ -829,7 +828,7 @@ function Wallet({
                 const pageWidth = doc.internal.pageSize.getWidth();
                 const pageHeight = doc.internal.pageSize.getHeight();
                 const defaultFontSize = doc.getFontSize();
-                const initialTop = 17;
+                const initialTop = 22;
                 const fontFamilly = "helvetica";
                 const headerFontSize = defaultFontSize - 8;
                 const titleFontSize = defaultFontSize - 6;
@@ -853,7 +852,7 @@ function Wallet({
                 };
 
                 const isNewPageNeeded = (fontSize) => {
-                    if (currentTop > pageHeight - initialTop - fontSize) {
+                    if (currentTop > pageHeight - 10 - fontSize) {
                         doc.addPage();
                         currentPage++;
                         drawHeader();
@@ -1048,199 +1047,290 @@ function Wallet({
     const focusTrapRef = useFocusTrap();
 
     const outsideRef = useClickOutside(() => {
-        //if (!addEditModalOpened) setSelected([]);
+        if (!addEditModalOpened) setSelected([]);
     });
+
+    const walletItemName = useMemo(
+        () =>
+            walletItem.name +
+            " - " +
+            (!addEditForm.values.id
+                ? addEditForm.values.type === "operation"
+                    ? "Nouvelle opération financière"
+                    : "Nouveau transfert"
+                : addEditForm.values.type === "operation"
+                ? "Opération financière"
+                : "Transfert entre compte"),
+        [walletItem.name, addEditForm.values.id, addEditForm.values.type]
+    );
+
+    const longDatePattern = getDatePattern(packagejson.i18n.defaultLocale, true);
+    const shortDatePattern = getDatePattern(packagejson.i18n.defaultLocale, false);
+
+    const goToday = () => {
+        addEditForm.setValues((current) => ({ ...current, date: new Date() }));
+    };
+
+    const deleteOperation = () => {
+        deleteOpe(opeListItems.filter((item) => selected.includes(item.id)));
+    };
+
+    const closeOperation = () => {
+        setOpeListItems((current) => {
+            const newItems = current
+                .map((item) => {
+                    if (selected.includes(item.id)) {
+                        return { ...item, state: item.state === 1 ? 0 : 1 };
+                    }
+                    return null;
+                })
+                .filter((r) => r !== null);
+
+            const { updated } = compareOpeListItems(newItems, current);
+            if (updated && updated.length > 0) {
+                const updatedIds = updated.map((u) => u.id);
+                const old = current.filter((c) => !updatedIds.includes(c.id));
+
+                updateOpe(updated);
+
+                return [...old, ...updated];
+            }
+            return current;
+        });
+    };
+
+    const memoizedResumebox = useMemo(() => <WalletResumeBox item={walletItem} />, [walletItem, app.currentDate]);
+
+    const memoizedFiltersbar = useMemo(
+        () => (
+            <FiltersBar
+                walletItemId={walletItem.id}
+                filters={filters}
+                visible={filtersOpened}
+                disabled={loading}
+                onChange={(view) => {
+                    setFilters((current) => ({ ...current, ...view.filters }));
+                    //setSorter((current) => ({ ...current, ...view.sorter }));
+                }}
+            />
+        ),
+        [walletItem.id, filters, filtersOpened, loading]
+    );
+
+    const selectOperations = (ids) => {
+        if (Array.isArray(ids)) {
+            setSelected((current) => [...current, ...ids.filter((id) => !current.includes(id))]);
+        } else {
+            setSelected([ids]);
+        }
+    };
+
+    const unselectOperations = (ids) => {
+        if (Array.isArray(ids)) {
+            setSelected((current) => current.filter((id) => !ids.includes(id)));
+        } else {
+            setSelected((current) => current.filter((id) => id !== ids));
+        }
+    };
+
+    const unselectAll = () => {
+        setSelected([]);
+    };
+
+    const memoizedItems = useMemo(
+        () => (
+            <OpeList
+                walletItem={walletItem}
+                currency={walletItem.currency}
+                items={opeListItems}
+                selected={selected}
+                onSelect={selectOperations}
+                onUnselect={unselectOperations}
+                onUnselectAll={unselectAll}
+                loading={loading}
+            />
+        ),
+        [opeListItems, loading, app.currentDate, walletItem, selected, forceRefresh]
+    );
 
     return (
         <>
-            <Modal
-                id="operation-add-edit"
-                opened={addEditModalOpened}
-                onClose={() => {
-                    setAddEditModalOpened(false);
-                }}
-                title={
-                    walletItem.name +
-                    " - " +
-                    (!addEditForm.values.id
-                        ? addEditForm.values.type === "operation"
-                            ? "Nouvelle opération financière"
-                            : "Nouveau transfert"
-                        : addEditForm.values.type === "operation"
-                        ? "Opération financière"
-                        : "Transfert entre compte")
-                }
-                overlayColor={app.theme.colorScheme === "dark" ? app.theme.colors.dark[9] : app.theme.colors.gray[2]}
-                overlayOpacity={0.55}
-                overlayBlur={3}
-                size={"md"}
-            >
-                <Stack py={"md"} spacing={"xs"}>
-                    <DatePicker
-                        label={"Date de valeur"}
-                        withAsterisk={true}
-                        clearable={false}
-                        locale={packagejson.i18n.defaultLocale}
-                        inputFormat={getDatePattern(packagejson.i18n.defaultLocale, true)}
-                        icon={<IconCalendar size={16} />}
-                        {...addEditForm.getInputProps("date")}
-                        rightSection={
-                            <Tooltip label={"Aujourd'hui"} withinPortal={true} withArrow={true}>
-                                <ActionIcon
-                                    variant={"transparent"}
-                                    color={"gray.5"}
-                                    onClick={() => {
-                                        addEditForm.setValues((current) => ({ ...current, date: new Date() }));
+            {addEditModalOpened && (
+                <Modal
+                    id="operation-add-edit"
+                    opened={addEditModalOpened}
+                    onClose={() => {
+                        setAddEditModalOpened(false);
+                    }}
+                    title={walletItemName}
+                    overlayColor={
+                        app.theme.colorScheme === "dark" ? app.theme.colors.dark[9] : app.theme.colors.gray[2]
+                    }
+                    overlayOpacity={0.55}
+                    overlayBlur={3}
+                    size={"md"}
+                >
+                    <Stack py={"md"} spacing={"xs"}>
+                        <DatePicker
+                            label={"Date de valeur"}
+                            withAsterisk={true}
+                            clearable={false}
+                            locale={packagejson.i18n.defaultLocale}
+                            inputFormat={longDatePattern}
+                            icon={<IconCalendar size={16} />}
+                            {...addEditForm.getInputProps("date")}
+                            rightSection={
+                                <Tooltip label={"Aujourd'hui"} withinPortal={true} withArrow={true}>
+                                    <ActionIcon variant={"transparent"} color={"gray.5"} onClick={goToday}>
+                                        <IconX size={16} stroke={1.5} />
+                                    </ActionIcon>
+                                </Tooltip>
+                            }
+                        />
+                        {addEditForm.values.type === "operation" && (
+                            <Select
+                                label={"Tiers"}
+                                withAsterisk={true}
+                                data={memoizedThirdparties}
+                                icon={<IconUsers size={16} />}
+                                clearable={true}
+                                searchable={true}
+                                nothingFound={"inconnu au bataillon!"}
+                                creatable={true}
+                                getCreateLabel={(query) => `+ Ajouter ${query}`}
+                                onCreate={(query) => {
+                                    const item = { id: `thirdparty_${uid()}`, name: query };
+                                    const selectItem = { label: item.name, value: item.id };
+                                    app.setThirdparties([...app.wallet.thirdparties, item]);
+                                    return selectItem;
+                                }}
+                                {...addEditForm.getInputProps("thirdpartyId")}
+                            />
+                        )}
+                        {addEditForm.values.type === "transfer" && (
+                            <Select
+                                label={"Destination"}
+                                withAsterisk={true}
+                                data={memoizedWalletItems}
+                                icon={<IconBuildingBank size={16} />}
+                                clearable={true}
+                                searchable={true}
+                                nothingFound={"inconnu au bataillon!"}
+                                {...addEditForm.getInputProps("fromWalletItemId")}
+                            />
+                        )}
+                        <Space h={"xs"} />
+                        <TextInput
+                            placeholder=""
+                            label="Dénomination"
+                            description="Minimum 2 caractères"
+                            icon={<IconTag size={14} />}
+                            {...addEditForm.getInputProps("title")}
+                            withAsterisk={true}
+                        />
+                        <TextInput
+                            placeholder=""
+                            label="Commentaire"
+                            icon={<IconQuote size={14} />}
+                            {...addEditForm.getInputProps("comment")}
+                            withAsterisk={false}
+                        />
+                        {addEditForm.values.type === "operation" && (
+                            <>
+                                <Space h={"xs"} />
+                                <Select
+                                    label={"Catégorie"}
+                                    data={memoizedCategories}
+                                    icon={<IconCategory size={16} />}
+                                    clearable={true}
+                                    searchable={true}
+                                    nothingFound={"inconnue au bataillon!"}
+                                    {...addEditForm.getInputProps("categoryId")}
+                                    withAsterisk={true}
+                                    creatable={true}
+                                    getCreateLabel={(query) => `+ Ajouter ${query}`}
+                                    onCreate={(query) => {
+                                        const item = { id: `category_${uid()}`, name: query, parentId: null };
+                                        const selectItem = { label: item.name, value: item.id };
+                                        app.setCategories([...app.wallet.categories, item]);
+                                        return selectItem;
                                     }}
-                                >
-                                    <IconX size={16} stroke={1.5} />
-                                </ActionIcon>
-                            </Tooltip>
-                        }
-                    />
-                    {addEditForm.values.type === "operation" && (
-                        <Select
-                            label={"Tiers"}
+                                />
+                                <Select
+                                    label={"Moyen de paiement"}
+                                    data={memoizedPaytypes}
+                                    icon={<IconCash size={16} />}
+                                    clearable={true}
+                                    searchable={true}
+                                    nothingFound={"inconnue au bataillon!"}
+                                    {...addEditForm.getInputProps("paytypeId")}
+                                    withAsterisk={true}
+                                    creatable={true}
+                                    getCreateLabel={(query) => `+ Ajouter ${query}`}
+                                    onCreate={(query) => {
+                                        const item = { id: `paytype_${uid()}`, name: query };
+                                        const selectItem = { label: item.name, value: item.id };
+                                        app.setPaytypes([...app.wallet.paytypes, item]);
+                                        return selectItem;
+                                    }}
+                                />
+                            </>
+                        )}
+                        <Space h={"xs"} />
+                        <NumberInput
+                            label={"Montant"}
+                            description={"Un montant négatif signifie un débit, un montant positif, un crédit."}
+                            precision={2}
+                            step={0.01}
+                            icon={<IconCurrencyEuro size={18} />}
+                            {...addEditForm.getInputProps("amount")}
                             withAsterisk={true}
-                            data={memoizedThirdparties}
-                            icon={<IconUsers size={16} />}
-                            clearable={true}
-                            searchable={true}
-                            nothingFound={"inconnu au bataillon!"}
-                            creatable={true}
-                            getCreateLabel={(query) => `+ Ajouter ${query}`}
-                            onCreate={(query) => {
-                                const item = { id: `thirdparty_${uid()}`, name: query };
-                                const selectItem = { label: item.name, value: item.id };
-                                app.setThirdparties([...app.wallet.thirdparties, item]);
-                                return selectItem;
-                            }}
-                            {...addEditForm.getInputProps("thirdpartyId")}
+                            styles={{ input: { color: addEditForm.values.amount < 0 ? "red" : "inherit" } }}
+                            data-autofocus={true}
                         />
-                    )}
-                    {addEditForm.values.type === "transfer" && (
-                        <Select
-                            label={"Destination"}
-                            withAsterisk={true}
-                            data={memoizedWalletItems}
-                            icon={<IconBuildingBank size={16} />}
-                            clearable={true}
-                            searchable={true}
-                            nothingFound={"inconnu au bataillon!"}
-                            {...addEditForm.getInputProps("fromWalletItemId")}
+                        <Checkbox
+                            label={"Opération rapprochée"}
+                            {...addEditForm.getInputProps("state", { type: "checkbox" })}
                         />
-                    )}
-                    <Space h={"xs"} />
-                    <TextInput
-                        placeholder=""
-                        label="Dénomination"
-                        description="Minimum 2 caractères"
-                        icon={<IconTag size={14} />}
-                        {...addEditForm.getInputProps("title")}
-                        withAsterisk={true}
-                    />
-                    <TextInput
-                        placeholder=""
-                        label="Commentaire"
-                        icon={<IconQuote size={14} />}
-                        {...addEditForm.getInputProps("comment")}
-                        withAsterisk={false}
-                    />
-                    {addEditForm.values.type === "operation" && (
-                        <>
-                            <Space h={"xs"} />
-                            <Select
-                                label={"Catégorie"}
-                                data={memoizedCategories}
-                                icon={<IconCategory size={16} />}
-                                clearable={true}
-                                searchable={true}
-                                nothingFound={"inconnue au bataillon!"}
-                                {...addEditForm.getInputProps("categoryId")}
-                                withAsterisk={true}
-                                creatable={true}
-                                getCreateLabel={(query) => `+ Ajouter ${query}`}
-                                onCreate={(query) => {
-                                    const item = { id: `category_${uid()}`, name: query, parentId: null };
-                                    const selectItem = { label: item.name, value: item.id };
-                                    app.setCategories([...app.wallet.categories, item]);
-                                    return selectItem;
-                                }}
-                            />
-                            <Select
-                                label={"Moyen de paiement"}
-                                data={memoizedPaytypes}
-                                icon={<IconCash size={16} />}
-                                clearable={true}
-                                searchable={true}
-                                nothingFound={"inconnue au bataillon!"}
-                                {...addEditForm.getInputProps("paytypeId")}
-                                withAsterisk={true}
-                                creatable={true}
-                                getCreateLabel={(query) => `+ Ajouter ${query}`}
-                                onCreate={(query) => {
-                                    const item = { id: `paytype_${uid()}`, name: query };
-                                    const selectItem = { label: item.name, value: item.id };
-                                    app.setPaytypes([...app.wallet.paytypes, item]);
-                                    return selectItem;
-                                }}
-                            />
-                        </>
-                    )}
-                    <Space h={"xs"} />
-                    <NumberInput
-                        label={"Montant"}
-                        description={"Un montant négatif signifie un débit, un montant positif, un crédit."}
-                        precision={2}
-                        step={0.01}
-                        icon={<IconCurrencyEuro size={18} />}
-                        {...addEditForm.getInputProps("amount")}
-                        withAsterisk={true}
-                        styles={{ input: { color: addEditForm.values.amount < 0 ? "red" : "inherit" } }}
-                        data-autofocus={true}
-                    />
-                    <Checkbox
-                        label={"Opération rapprochée"}
-                        {...addEditForm.getInputProps("state", { type: "checkbox" })}
-                    />
-                </Stack>
-                <Group position="right" mt="xl">
-                    <Button
-                        variant="default"
-                        onClick={() => {
-                            setAddEditModalOpened(false);
-                        }}
-                        disabled={saving}
-                    >
-                        Annuler
-                    </Button>
-                    <Tooltip label={"Enregistrer et Conserver les informations"}>
+                    </Stack>
+                    <Group position="right" mt="xl">
                         <Button
                             variant="default"
                             onClick={() => {
-                                saveOpe();
-                                addEditForm.setValues((current) => ({ ...current, id: null }));
+                                setAddEditModalOpened(false);
                             }}
                             disabled={saving}
-                            loading={saving}
                         >
-                            Enregistrer
+                            Annuler
                         </Button>
-                    </Tooltip>
-                    <Tooltip label={"Enregistrer et Quitter"}>
-                        <Button
-                            type="submit"
-                            onClick={() => {
-                                saveOpe(true);
-                            }}
-                            disabled={saving}
-                            loading={saving}
-                        >
-                            Valider
-                        </Button>
-                    </Tooltip>
-                </Group>
-            </Modal>
+                        <Tooltip label={"Enregistrer et Conserver les informations"}>
+                            <Button
+                                variant="default"
+                                onClick={() => {
+                                    saveOpe();
+                                    addEditForm.setValues((current) => ({ ...current, id: null }));
+                                }}
+                                disabled={saving}
+                                loading={saving}
+                            >
+                                Enregistrer
+                            </Button>
+                        </Tooltip>
+                        <Tooltip label={"Enregistrer et Quitter"}>
+                            <Button
+                                type="submit"
+                                onClick={() => {
+                                    saveOpe(true);
+                                }}
+                                disabled={saving}
+                                loading={saving}
+                            >
+                                Valider
+                            </Button>
+                        </Tooltip>
+                    </Group>
+                </Modal>
+            )}
 
             <CsvImportModal
                 walletItem={walletItem}
@@ -1273,17 +1363,13 @@ function Wallet({
             />
 
             <Stack>
-                {useMemo(
-                    () => (
-                        <WalletResumeBox item={walletItem} />
-                    ),
-                    [walletItem, app.currentDate]
-                )}
+                {memoizedResumebox}
 
                 <Tabs
                     defaultValue={"details"}
-                    sx={(theme) => ({ display: "flex", flexDirection: "column", minHeight: "100%" })}
+                    sx={{ display: "flex", flexDirection: "column", minHeight: "100%" }}
                     ref={focusTrapRef}
+                    keepMounted={false}
                 >
                     <Tabs.List>
                         <Tabs.Tab value="details" icon={<IconListDetails size={14} />}>
@@ -1296,9 +1382,21 @@ function Wallet({
                             Planification
                         </Tabs.Tab>
                     </Tabs.List>
-                    <Tabs.Panel value="details" pt={"md"} sx={(theme) => ({ flex: "1 1 auto" })} ref={outsideRef}>
+                    <Tabs.Panel value={"details"} pt={"md"} sx={{ flex: "1 1 auto" }} ref={outsideRef}>
                         <Stack>
-                            <Group position={"left"} spacing={"xs"}>
+                            <Group
+                                position={"left"}
+                                spacing={"xs"}
+                                p={"xs"}
+                                style={{
+                                    position: "sticky",
+                                    top: "80px",
+                                    zIndex: 1,
+                                    backdropFilter: "blur(10px)",
+                                    backgroundColor: app.theme.fn.rgba(app.theme.white, 0.5),
+                                    borderRadius: "5px"
+                                }}
+                            >
                                 <Tooltip
                                     label={"Ajouter une opération (Ctrl+Alt+N)"}
                                     withinPortal={true}
@@ -1309,9 +1407,7 @@ function Wallet({
                                         variant={"filled"}
                                         color={app.theme.colors.gray[7]}
                                         disabled={loading}
-                                        onClick={() => {
-                                            openOpe("operation", true);
-                                        }}
+                                        onClick={() => openOpe("operation", true)}
                                     >
                                         <IconPlus size={16} stroke={2.5} />
                                     </ActionIcon>
@@ -1326,9 +1422,7 @@ function Wallet({
                                         variant={"filled"}
                                         color={app.theme.colors.gray[7]}
                                         disabled={loading}
-                                        onClick={() => {
-                                            openOpe("transfer", true);
-                                        }}
+                                        onClick={() => openOpe("transfer", true)}
                                     >
                                         <IconArrowsTransferDown size={16} stroke={2.5} />
                                     </ActionIcon>
@@ -1339,9 +1433,7 @@ function Wallet({
                                         variant={"subtle"}
                                         color={"dark"}
                                         disabled={loading || selected.length !== 1}
-                                        onClick={() => {
-                                            openOpe();
-                                        }}
+                                        onClick={() => openOpe()}
                                     >
                                         <IconEdit size={16} stroke={2} />
                                     </ActionIcon>
@@ -1352,9 +1444,7 @@ function Wallet({
                                         variant={"outline"}
                                         color={"red.9"}
                                         disabled={loading || selected.length < 1}
-                                        onClick={() => {
-                                            deleteOpe(opeListItems.filter((item) => selected.includes(item.id)));
-                                        }}
+                                        onClick={deleteOperation}
                                     >
                                         <IconTrash size={16} stroke={2} />
                                     </ActionIcon>
@@ -1366,29 +1456,7 @@ function Wallet({
                                         variant={"subtle"}
                                         color={"dark"}
                                         disabled={loading || selected.length < 1}
-                                        onClick={() => {
-                                            setOpeListItems((current) => {
-                                                const newItems = current
-                                                    .map((item) => {
-                                                        if (selected.includes(item.id)) {
-                                                            return { ...item, state: item.state === 1 ? 0 : 1 };
-                                                        }
-                                                        return null;
-                                                    })
-                                                    .filter((r) => r !== null);
-
-                                                const { updated } = compareOpeListItems(newItems, current);
-                                                if (updated && updated.length > 0) {
-                                                    const updatedIds = updated.map((u) => u.id);
-                                                    const old = current.filter((c) => !updatedIds.includes(c.id));
-
-                                                    updateOpe(updated);
-
-                                                    return [...old, ...updated];
-                                                }
-                                                return current;
-                                            });
-                                        }}
+                                        onClick={closeOperation}
                                     >
                                         <IconRotateRectangle size={16} stroke={2} />
                                     </ActionIcon>
@@ -1399,7 +1467,7 @@ function Wallet({
                                         size="md"
                                         variant={"subtle"}
                                         color={"dark"}
-                                        onClick={() => loadOpeList()}
+                                        onClick={loadOpeList}
                                         loading={loading}
                                         disabled={loading}
                                     >
@@ -1465,20 +1533,10 @@ function Wallet({
                                     </Menu.Target>
                                     <Menu.Dropdown>
                                         <Menu.Label>Importer au format</Menu.Label>
-                                        <Menu.Item
-                                            icon={<IconFileText size={14} />}
-                                            onClick={() => {
-                                                importFromCsv();
-                                            }}
-                                        >
+                                        <Menu.Item icon={<IconFileText size={14} />} onClick={importFromCsv}>
                                             Format CSV
                                         </Menu.Item>
-                                        <Menu.Item
-                                            icon={<IconFilePercent size={14} />}
-                                            onClick={() => {
-                                                importFromOfx();
-                                            }}
-                                        >
+                                        <Menu.Item icon={<IconFilePercent size={14} />} onClick={importFromOfx}>
                                             Format OFX
                                         </Menu.Item>
                                     </Menu.Dropdown>
@@ -1593,21 +1651,7 @@ function Wallet({
                                 </Menu>
                             </Group>
 
-                            {useMemo(
-                                () => (
-                                    <FiltersBar
-                                        walletItemId={walletItem.id}
-                                        filters={filters}
-                                        visible={filtersOpened}
-                                        disabled={loading}
-                                        onChange={(view) => {
-                                            setFilters((current) => ({ ...current, ...view.filters }));
-                                            //setSorter((current) => ({ ...current, ...view.sorter }));
-                                        }}
-                                    />
-                                ),
-                                [walletItem.id, filters, filtersOpened, loading]
-                            )}
+                            {memoizedFiltersbar}
 
                             {opeListItems && opeListItems.length === 0 && (
                                 <Alert icon={<IconAlertCircle size={16} />} title="Oups!" color="gray">
@@ -1646,46 +1690,18 @@ function Wallet({
                                 </Alert>
                             )}
 
-                            {useMemo(
-                                () => (
-                                    <OpeList
-                                        walletItem={walletItem}
-                                        currency={walletItem.currency}
-                                        items={opeListItems}
-                                        selected={selected}
-                                        onSelect={(ids) => {
-                                            if (Array.isArray(ids)) {
-                                                setSelected((current) => [
-                                                    ...current,
-                                                    ...ids.filter((id) => !current.includes(id))
-                                                ]);
-                                            } else {
-                                                setSelected([ids]);
-                                            }
-                                        }}
-                                        onUnselect={(ids) => {
-                                            if (Array.isArray(ids)) {
-                                                setSelected((current) => current.filter((id) => !ids.includes(id)));
-                                            } else {
-                                                setSelected((current) => current.filter((id) => id !== ids));
-                                            }
-                                        }}
-                                        onUnselectAll={() => {
-                                            setSelected([]);
-                                        }}
-                                        loading={loading}
-                                    />
-                                ),
-                                [opeListItems, loading, app.currentDate, walletItem, selected, forceRefresh]
-                            )}
+                            {memoizedItems}
                         </Stack>
                     </Tabs.Panel>
-                    <Tabs.Panel value="calendar" pt={"md"} sx={(theme) => ({ flex: "1 1 auto" })}></Tabs.Panel>
-                    <Tabs.Panel value="planner" pt={"md"} sx={(theme) => ({ flex: "1 1 auto" })}></Tabs.Panel>
+                    <Tabs.Panel value="calendar" pt={"md"} sx={{ flex: "1 1 auto" }}></Tabs.Panel>
+                    <Tabs.Panel value="planner" pt={"md"} sx={{ flex: "1 1 auto" }}></Tabs.Panel>
                 </Tabs>
             </Stack>
         </>
     );
 }
 
-export default Wallet;
+export default memo(
+    Wallet,
+    (p, n) => p.walletItem.id === n.walletItem.id && JSON.stringify(p.walletFilters) === JSON.stringify(n.walletFilters)
+);

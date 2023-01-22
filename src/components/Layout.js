@@ -94,6 +94,21 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
         }
     }, [app.idle]);
 
+    const closeSettings = () => {
+        if (settingsOpened && app.expectedSaving) app.save();
+        setSettingsOpened(false);
+    };
+
+    const setSettings = (newSettings) => {
+        app.setSettings(newSettings);
+    };
+
+    const save = () => {
+        if (!app.saving) app.save();
+    };
+
+    const disconnect = () => app.disconnect(true);
+
     return (
         <AppContext.Consumer>
             {(value) => {
@@ -101,14 +116,9 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                     <>
                         <SettingsModal
                             visible={settingsOpened}
-                            onClose={() => {
-                                if (settingsOpened && app.expectedSaving) app.save();
-                                setSettingsOpened(false);
-                            }}
+                            onClose={closeSettings}
                             settings={memoizedSettings}
-                            onChange={(newSettings) => {
-                                app.setSettings(newSettings);
-                            }}
+                            onChange={setSettings}
                         />
 
                         <ShortcutsModal visible={shortcutsOpened} onClose={() => setShortcutsOpened(false)} />
@@ -334,9 +344,7 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                                         <ActionIcon
                                                             variant={"filled"}
                                                             color={"blue"}
-                                                            onClick={() => {
-                                                                if (!app.saving) app.save();
-                                                            }}
+                                                            onClick={save}
                                                             loading={app.saving}
                                                         >
                                                             <IconDeviceFloppy size={16} />
@@ -344,11 +352,7 @@ const Layout = ({ navbar = { header: null, content: null }, children }) => {
                                                     </Tooltip>
                                                 )}
                                                 <Tooltip label={"Me déconnecter"}>
-                                                    <ActionIcon
-                                                        variant={"filled"}
-                                                        color={"red.8"}
-                                                        onClick={() => app.disconnect(true)}
-                                                    >
+                                                    <ActionIcon variant={"filled"} color={"red.8"} onClick={disconnect}>
                                                         <IconPlugConnectedX size={18} />
                                                     </ActionIcon>
                                                 </Tooltip>

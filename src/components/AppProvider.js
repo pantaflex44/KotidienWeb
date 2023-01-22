@@ -1,6 +1,6 @@
 import packagejson from "../../package.json";
 
-import React, { useEffect, useState, createContext, useMemo, useCallback } from "react";
+import React, { useEffect, useState, createContext, useMemo, useCallback, memo } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom";
 
 import { Text, useMantineTheme } from "@mantine/core";

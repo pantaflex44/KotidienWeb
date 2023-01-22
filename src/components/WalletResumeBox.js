@@ -1,7 +1,7 @@
 import packagejson from "../../package.json";
 import dayjs from "dayjs";
 
-import React, { useContext, useState, useLayoutEffect, useEffect } from "react";
+import React, { useContext, useState, useLayoutEffect, useEffect, memo } from "react";
 
 import { Accordion, Divider, Grid, MediaQuery, Paper, Stack, Text } from "@mantine/core";
 
@@ -150,4 +150,4 @@ function WalletResumeBox({ item }) {
     );
 }
 
-export default WalletResumeBox;
+export default memo(WalletResumeBox, (p, n) => p.item.id === n.item.id);

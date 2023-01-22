@@ -439,4 +439,4 @@ function CategoriesTree({ value = [], onChange = null, useColors = true }) {
     );
 }
 
-export default CategoriesTree;
+export default memo(CategoriesTree, (p, n) => JSON.stringify(p.value) === JSON.stringify(n.value));
