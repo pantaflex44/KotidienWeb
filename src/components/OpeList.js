@@ -3,7 +3,7 @@ import { useHotkeys } from "@mantine/hooks";
 
 import React, { memo, useCallback, useContext, useEffect, useMemo, useState } from "react";
 
-import { Group, LoadingOverlay, Stack, Text } from "@mantine/core";
+import { Group, Loader, LoadingOverlay, Stack, Text } from "@mantine/core";
 
 import { IconChevronDown, IconChevronUp } from "@tabler/icons";
 
@@ -234,30 +234,33 @@ function OpeList({
 
     return (
         <>
-            <LoadingOverlay
-                visible={loading}
-                overlayBlur={0}
-                overlayOpacity={0}
-                transitionDuration={250}
-                loaderProps={{ size: "sm", variant: "bars" }}
-            />
-
             {items.length > 0 && (
                 <>
-                    <Group spacing={"xs"} position={"center"}>
-                        <Group spacing={4} style={{ cursor: "pointer" }} onClick={() => expandAll()}>
-                            <IconChevronDown size={16} />
-                            <Text variant={"link"} size={"xs"}>
-                                Tout développer
+                    {!loading && (
+                        <Group spacing={"xs"} position={"center"}>
+                            <Group spacing={4} style={{ cursor: "pointer" }} onClick={() => expandAll()}>
+                                <IconChevronDown size={16} />
+                                <Text variant={"link"} size={"xs"}>
+                                    Tout développer
+                                </Text>
+                            </Group>
+                            <Group spacing={4} style={{ cursor: "pointer" }} onClick={() => collapseAll()}>
+                                <IconChevronUp size={16} />
+                                <Text variant={"link"} size={"xs"}>
+                                    Tout refermer
+                                </Text>
+                            </Group>
+                        </Group>
+                    )}
+
+                    {loading && (
+                        <Group position={"center"} spacing={"xs"} my={"lg"}>
+                            <Loader size={"xs"} variant={"bars"} />
+                            <Text size={"xs"} fw={500}>
+                                Chargement en cours, veuillez patienter SVP...
                             </Text>
                         </Group>
-                        <Group spacing={4} style={{ cursor: "pointer" }} onClick={() => collapseAll()}>
-                            <IconChevronUp size={16} />
-                            <Text variant={"link"} size={"xs"}>
-                                Tout refermer
-                            </Text>
-                        </Group>
-                    </Group>
+                    )}
 
                     <Stack spacing={"md"}>{memoizedItems}</Stack>
                 </>

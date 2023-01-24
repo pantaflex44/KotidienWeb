@@ -202,6 +202,8 @@ function Wallet({
     const memoizedPaytypes = useMemo(() => getPaytypes(), [app.wallet?.paytypes]);
 
     const openOpe = (type = "operation", forceNew = false) => {
+        if (window) document.body.style.cursor = "wait";
+
         addEditForm.reset();
 
         let data = {};
@@ -217,6 +219,8 @@ function Wallet({
         if (data.type === "transfer" && data.amount >= 0) return;
 
         if (Object.keys(data).length === 0) {
+            if (window) document.body.style.cursor = "default";
+
             showNotification({
                 id: `open-operation-error-notification-${uid()}`,
                 disallowClose: true,
@@ -234,10 +238,14 @@ function Wallet({
             });
 
             setAddEditModalOpened(true);
+
+            if (window) document.body.style.cursor = "default";
         }
     };
 
     const saveOpe = (closeAfterSave = false) => {
+if (window) document.body.style.cursor = "wait";
+
         setSaving(true);
 
         const apply = () => {
@@ -309,6 +317,8 @@ function Wallet({
                     })
                     .finally(() => {
                         setSaving(false);
+
+                        if (window) document.body.style.cursor = "default";
                     });
             }
         };
@@ -318,6 +328,8 @@ function Wallet({
                 .then(() => apply())
                 .finally(() => {
                     setSaving(false);
+
+                    if (window) document.body.style.cursor = "default";
                 });
         } else {
             apply();
@@ -343,6 +355,8 @@ function Wallet({
             overlayOpacity: 0.55,
             overlayBlur: 3,
             onConfirm: () => {
+                if (window) document.body.style.cursor = "wait";
+
                 deleteOperations(app.wallet.email, items)
                     .then((response) => {
                         const { deleted, errorCode, errorMessage } = response;
@@ -383,6 +397,8 @@ function Wallet({
             onCancel: () => {
                 setSaving(false);
                 closeAllModals();
+
+                if (window) document.body.style.cursor = "default";
             }
         });
 
@@ -391,6 +407,8 @@ function Wallet({
 
     const updateOpe = (items) => {
         if (items.length === 0) return;
+
+        if (window) document.body.style.cursor = "wait";
 
         items.map((item) => {
             setSaving(true);
@@ -425,6 +443,8 @@ function Wallet({
                 })
                 .finally(() => {
                     setSaving(false);
+
+                    if (window) document.body.style.cursor = "default";
                 });
         });
     };
@@ -946,54 +966,61 @@ function Wallet({
             .finally(() => setLoading(false));
     };
 
-    const loadOpeList = useCallback(() => {
-        setLoading(true);
-        setSelected([]);
+    const loadOpeList = useCallback(
+        (custumFilters = null) => {
+            if(window) document.body.style.cursor = "wait";
 
-        getOperations(app.wallet.email, walletItem.id, filters)
-            .then((response) => {
-                const { operations, errorCode, errorMessage } = response;
+            setLoading(true);
+            setSelected([]);
 
-                if (errorCode !== 0) {
-                    showNotification({
-                        id: `get-operation-error-notification-${uid()}`,
-                        disallowClose: true,
-                        autoClose: 5000,
-                        title: "Impossible de lister les opérations!",
-                        message: errorMessage,
-                        color: "red",
-                        icon: <IconX size={18} />,
-                        loading: false
-                    });
-                } else {
-                    setOpeListItems((current) => {
-                        const results = compareOpeListItems(operations, current);
-                        if (!results) return operations;
+            getOperations(app.wallet.email, walletItem.id, filters)
+                .then((response) => {
+                    const { operations, errorCode, errorMessage } = response;
 
-                        const { added, removed, updated } = results;
-                        let newOperations = [...current, ...added];
-
-                        const removedIds = removed.map((o) => o.id);
-                        newOperations = newOperations.filter((o) => !removedIds.includes(o.id));
-
-                        const updatedIds = updated.map((o) => o.id);
-                        newOperations = newOperations.map((o) => {
-                            if (!updatedIds.includes(o.id)) return o;
-
-                            const uope = updated.filter((u) => u.id === o.id);
-                            if (uope.length === 0) return o;
-
-                            return { ...o, ...uope[0] };
+                    if (errorCode !== 0) {
+                        showNotification({
+                            id: `get-operation-error-notification-${uid()}`,
+                            disallowClose: true,
+                            autoClose: 5000,
+                            title: "Impossible de lister les opérations!",
+                            message: errorMessage,
+                            color: "red",
+                            icon: <IconX size={18} />,
+                            loading: false
                         });
+                    } else {
+                        setOpeListItems((current) => {
+                            const results = compareOpeListItems(operations, current);
+                            if (!results) return operations;
 
-                        return newOperations;
-                    });
-                }
-            })
-            .finally(() => {
-                setLoading(false);
-            });
-    }, [walletItem.id, filters, app.currentDate, forceRefresh]);
+                            const { added, removed, updated } = results;
+                            let newOperations = [...current, ...added];
+
+                            const removedIds = removed.map((o) => o.id);
+                            newOperations = newOperations.filter((o) => !removedIds.includes(o.id));
+
+                            const updatedIds = updated.map((o) => o.id);
+                            newOperations = newOperations.map((o) => {
+                                if (!updatedIds.includes(o.id)) return o;
+
+                                const uope = updated.filter((u) => u.id === o.id);
+                                if (uope.length === 0) return o;
+
+                                return { ...o, ...uope[0] };
+                            });
+
+                            return newOperations;
+                        });
+                    }
+                })
+                .finally(() => {
+                    setLoading(false);
+
+                    if (window) document.body.style.cursor = "default";
+                });
+        },
+        [walletItem.id, filters, app.currentDate, forceRefresh]
+    );
 
     useEffect(() => {
         if (app.idle) {
@@ -1164,7 +1191,15 @@ function Wallet({
     );
 
     const memoizedCalendarView = useMemo(
-        () => <CalendarView walletItem={walletItem} items={opeListItems} />,
+        () => (
+            <CalendarView
+                walletItem={walletItem}
+                items={opeListItems}
+                onDateChange={([startDate, endDate]) => {
+                    setFilters((current) => ({ ...current, interval: "", startDate, endDate }));
+                }}
+            />
+        ),
         [opeListItems, walletItem]
     );
 
@@ -1727,5 +1762,8 @@ function Wallet({
 
 export default memo(
     Wallet,
-    (p, n) => p.walletItem.id === n.walletItem.id && JSON.stringify(p.walletFilters) === JSON.stringify(n.walletFilters)
+    (p, n) =>
+        p.walletItem.id === n.walletItem.id &&
+        JSON.stringify(p.walletFilters) === JSON.stringify(n.walletFilters) &&
+        JSON.stringify(p.walletSorter) === JSON.stringify(n.walletSorter)
 );
