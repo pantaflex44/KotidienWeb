@@ -237,7 +237,7 @@ function OpeList({
             {items.length > 0 && (
                 <>
                     {!loading && (
-                        <Group spacing={"xs"} position={"center"}>
+                        <Group spacing={"xs"} position={"center"} mb={"md"}>
                             <Group spacing={4} style={{ cursor: "pointer" }} onClick={() => expandAll()}>
                                 <IconChevronDown size={16} />
                                 <Text variant={"link"} size={"xs"}>

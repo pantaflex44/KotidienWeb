@@ -113,3 +113,12 @@ Kotidien est sous licence libre et open-source. Cette licence vous permet de red
 
 ---
 
+![Vue calendrier](./screenshots/screenshot-calendarview.png "Vue calendrier")
+*Vue calendrier*
+
+---
+
+![Vue calendrier (détails)](./screenshots/screenshot-calendarview-details.png "Vue calendrier (détails)")
+*Vue calendrier (détails)*
+
+---

@@ -6,7 +6,7 @@ import { getDatePattern, getFirstDayOfMonth, getLastDayOfMonth } from "../../too
 import dayjs from "dayjs";
 import { getAmountAt } from "../wrappers/wallet_api";
 
-import { ActionIcon, Box, Group, Indicator, MediaQuery, SimpleGrid, Stack, Text } from "@mantine/core";
+import { ActionIcon, Box, Group, Indicator, MediaQuery, Modal, SimpleGrid, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 
 import { IconChevronLeft, IconChevronRight } from "@tabler/icons";
@@ -14,6 +14,7 @@ import { IconChevronLeft, IconChevronRight } from "@tabler/icons";
 import { AppContext } from "./AppProvider";
 import Currency from "./Currency";
 import moment from "moment/moment";
+import OpeList from "./OpeList";
 
 function CalendarView({ walletItem, items, currentDate = null, onDateChange = null }) {
     const app = useContext(AppContext);
@@ -21,6 +22,8 @@ function CalendarView({ walletItem, items, currentDate = null, onDateChange = nu
     const [calendar, setCalendar] = useState([]);
     const [totalAmounts, setTotalAmounts] = useState({});
     const [viewDate, setViewDate] = useState(currentDate || dayjs().toDate());
+    const [infoModalOpened, setInfoModalOpened] = useState(false);
+    const [selectedItems, setSelectedItems] = useState(null);
 
     const isToSmall = useMediaQuery("(max-width: 768px)");
     const toLongDate = (date) =>
@@ -179,186 +182,174 @@ function CalendarView({ walletItem, items, currentDate = null, onDateChange = nu
     }, [calendar]);
 
     return (
-        <Stack>
-            <Group position="center" spacing="lg">
-                <Group
-                    position="center"
-                    spacing="xs"
-                    p={"4px"}
-                    style={{
-                        backgroundColor:
-                            app.theme.colorScheme === "dark" ? app.theme.colors.gray[9] : app.theme.colors.gray[0],
-                        borderRadius: "5px"
+        <>
+            {infoModalOpened && selectedItems && (
+                <Modal
+                    id="operation-add-edit"
+                    opened={infoModalOpened}
+                    onClose={() => {
+                        setInfoModalOpened(false);
                     }}
+                    title={"Les transactions financières"}
+                    overlayColor={
+                        app.theme.colorScheme === "dark" ? app.theme.colors.dark[9] : app.theme.colors.gray[2]
+                    }
+                    overlayOpacity={0.55}
+                    overlayBlur={3}
+                    size={"xl"}
                 >
-                    <ActionIcon
-                        onClick={() =>
-                            setViewDate((current) => {
-                                const newDate = dayjs(current).subtract(1, "month");
-                                dateChanged(newDate);
-                                return newDate.toDate();
-                            })
-                        }
+                    <OpeList walletItem={walletItem} items={selectedItems.items} />
+                </Modal>
+            )}
+
+            <Stack>
+                <Group position="center" spacing="lg">
+                    <Group
+                        position="center"
+                        spacing="xs"
+                        p={"4px"}
+                        style={{
+                            backgroundColor:
+                                app.theme.colorScheme === "dark" ? app.theme.colors.gray[9] : app.theme.colors.gray[0],
+                            borderRadius: "5px"
+                        }}
                     >
-                        <IconChevronLeft size={14} color={app.theme.colors.brand[5]} stroke={2.5} />
-                    </ActionIcon>
-                    <Text size={"xs"} fw={500}>
-                        {dayjs(viewDate).locale(packagejson.i18n.defaultLocale).format("MMMM")}
-                    </Text>
-                    <ActionIcon
-                        onClick={() =>
-                            setViewDate((current) => {
-                                const newDate = dayjs(current).add(1, "month");
-                                dateChanged(newDate);
-                                return newDate.toDate();
-                            })
-                        }
-                    >
-                        <IconChevronRight size={14} color={app.theme.colors.brand[5]} stroke={2.5} />
-                    </ActionIcon>
-                </Group>
-                <Group
-                    position="center"
-                    spacing="xs"
-                    p={"4px"}
-                    style={{
-                        backgroundColor:
-                            app.theme.colorScheme === "dark" ? app.theme.colors.gray[9] : app.theme.colors.gray[0],
-                        borderRadius: "5px"
-                    }}
-                >
-                    <ActionIcon
-                        onClick={() =>
-                            setViewDate((current) => {
-                                const newDate = dayjs(current).subtract(1, "year");
-                                dateChanged(newDate);
-                                return newDate.toDate();
-                            })
-                        }
-                    >
-                        <IconChevronLeft size={14} color={app.theme.colors.brand[5]} stroke={2.5} />
-                    </ActionIcon>
-                    <Text size={"xs"} fw={500}>
-                        {dayjs(viewDate).locale(packagejson.i18n.defaultLocale).format("YYYY")}
-                    </Text>
-                    <ActionIcon
-                        onClick={() =>
-                            setViewDate((current) => {
-                                const newDate = dayjs(current).add(1, "year");
-                                dateChanged(newDate);
-                                return newDate.toDate();
-                            })
-                        }
-                    >
-                        <IconChevronRight size={14} color={app.theme.colors.brand[5]} stroke={2.5} />
-                    </ActionIcon>
-                </Group>
-            </Group>
-            <SimpleGrid cols={isToSmall ? 1 : 7} mx={4} spacing="xs" verticalSpacing={isToSmall ? "md" : "xs"}>
-                {["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"].map((day) => (
-                    <MediaQuery smallerThan={"sm"} styles={{ display: "none" }} key={day}>
-                        <Box
-                            p={"xs"}
-                            style={{
-                                backgroundColor:
-                                    app.theme.colorScheme === "dark"
-                                        ? app.theme.colors.brand[7]
-                                        : app.theme.colors.brand[3],
-                                color: app.theme.white
-                            }}
+                        <ActionIcon
+                            onClick={() =>
+                                setViewDate((current) => {
+                                    const newDate = dayjs(current).subtract(1, "month");
+                                    dateChanged(newDate);
+                                    return newDate.toDate();
+                                })
+                            }
                         >
-                            <Text size={"sm"} lineClamp={1} align={"center"}>
-                                {day}
-                            </Text>
-                        </Box>
-                    </MediaQuery>
-                ))}
-
-                {calendar.map((week) =>
-                    Object.keys(week).map((date) => {
-                        return (
+                            <IconChevronLeft size={14} color={app.theme.colors.brand[5]} stroke={2.5} />
+                        </ActionIcon>
+                        <Text size={"xs"} fw={500}>
+                            {dayjs(viewDate).locale(packagejson.i18n.defaultLocale).format("MMMM")}
+                        </Text>
+                        <ActionIcon
+                            onClick={() =>
+                                setViewDate((current) => {
+                                    const newDate = dayjs(current).add(1, "month");
+                                    dateChanged(newDate);
+                                    return newDate.toDate();
+                                })
+                            }
+                        >
+                            <IconChevronRight size={14} color={app.theme.colors.brand[5]} stroke={2.5} />
+                        </ActionIcon>
+                    </Group>
+                    <Group
+                        position="center"
+                        spacing="xs"
+                        p={"4px"}
+                        style={{
+                            backgroundColor:
+                                app.theme.colorScheme === "dark" ? app.theme.colors.gray[9] : app.theme.colors.gray[0],
+                            borderRadius: "5px"
+                        }}
+                    >
+                        <ActionIcon
+                            onClick={() =>
+                                setViewDate((current) => {
+                                    const newDate = dayjs(current).subtract(1, "year");
+                                    dateChanged(newDate);
+                                    return newDate.toDate();
+                                })
+                            }
+                        >
+                            <IconChevronLeft size={14} color={app.theme.colors.brand[5]} stroke={2.5} />
+                        </ActionIcon>
+                        <Text size={"xs"} fw={500}>
+                            {dayjs(viewDate).locale(packagejson.i18n.defaultLocale).format("YYYY")}
+                        </Text>
+                        <ActionIcon
+                            onClick={() =>
+                                setViewDate((current) => {
+                                    const newDate = dayjs(current).add(1, "year");
+                                    dateChanged(newDate);
+                                    return newDate.toDate();
+                                })
+                            }
+                        >
+                            <IconChevronRight size={14} color={app.theme.colors.brand[5]} stroke={2.5} />
+                        </ActionIcon>
+                    </Group>
+                </Group>
+                <SimpleGrid cols={isToSmall ? 1 : 7} mx={4} spacing="xs" verticalSpacing={isToSmall ? "md" : "xs"}>
+                    {["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"].map((day) => (
+                        <MediaQuery smallerThan={"sm"} styles={{ display: "none" }} key={day}>
                             <Box
-                                key={date}
-                                h={isToSmall ? (week[date].itemsCount > 0 ? "57px" : "26px") : "110px"}
-                                sx={{
-                                    cursor: week[date].itemsCount > 0 ? "pointer" : "default",
-                                    borderRadius: "5px",
-                                    backgroundColor: week[date].isWeekend
-                                        ? app.theme.fn.rgba(app.theme.colors.brand[5], 0.05)
-                                        : "transparent",
-                                    overflow: "hidden",
-
-                                    "&:hover": {
-                                        backgroundColor:
-                                            week[date].itemsCount > 0
-                                                ? app.theme.colorScheme === "dark"
-                                                    ? app.theme.colors.gray[9]
-                                                    : app.theme.colors.gray[0]
-                                                : week[date].isWeekend
-                                                ? app.theme.fn.rgba(app.theme.colors.brand[5], 0.05)
-                                                : "transparent"
-                                    }
+                                p={"xs"}
+                                style={{
+                                    backgroundColor:
+                                        app.theme.colorScheme === "dark"
+                                            ? app.theme.colors.brand[7]
+                                            : app.theme.colors.brand[3],
+                                    color: app.theme.white
                                 }}
                             >
-                                <Group
-                                    position={isToSmall ? "apart" : "right"}
-                                    style={{
-                                        height: "24px",
+                                <Text size={"sm"} lineClamp={1} align={"center"}>
+                                    {day}
+                                </Text>
+                            </Box>
+                        </MediaQuery>
+                    ))}
+
+                    {calendar.map((week) =>
+                        Object.keys(week).map((date) => {
+                            return (
+                                <Box
+                                    key={date}
+                                    h={isToSmall ? (week[date].itemsCount > 0 ? "57px" : "26px") : "110px"}
+                                    sx={{
+                                        cursor: week[date].itemsCount > 0 ? "pointer" : "default",
                                         borderRadius: "5px",
-                                        borderRight: `1px solid ${
-                                            app.theme.colorScheme === "dark"
-                                                ? app.theme.colors.gray[8]
-                                                : app.theme.colors.gray[2]
-                                        }`,
-                                        borderTop: `1px solid ${
-                                            app.theme.colorScheme === "dark"
-                                                ? app.theme.colors.gray[8]
-                                                : app.theme.colors.gray[2]
-                                        }`
+                                        backgroundColor: week[date].isWeekend
+                                            ? app.theme.fn.rgba(app.theme.colors.brand[5], 0.05)
+                                            : "transparent",
+                                        overflow: "hidden",
+
+                                        "&:hover": {
+                                            backgroundColor:
+                                                week[date].itemsCount > 0
+                                                    ? app.theme.colorScheme === "dark"
+                                                        ? app.theme.colors.gray[9]
+                                                        : app.theme.colors.gray[0]
+                                                    : week[date].isWeekend
+                                                    ? app.theme.fn.rgba(app.theme.colors.brand[5], 0.05)
+                                                    : "transparent"
+                                        }
+                                    }}
+                                    onClick={() => {
+                                        if (week[date].itemsCount > 0) {
+                                            setSelectedItems({ date, items: week[date].items });
+                                            setInfoModalOpened(true);
+                                        }
                                     }}
                                 >
-                                    {isToSmall &&
-                                        (week[date].itemsCount > 0 || amountIsKnownAt(date) ? (
-                                            <Currency
-                                                pl={6}
-                                                currency={walletItem.currency}
-                                                size={"12px"}
-                                                fw={500}
-                                                lineClamp={1}
-                                                amount={getKnownAmountAt(date)}
-                                                color={
-                                                    app.theme.colorScheme === "dark"
-                                                        ? app.theme.colors.brand[3]
-                                                        : app.theme.colors.brand[7]
-                                                }
-                                            />
-                                        ) : (
-                                            <Text size={"12px"}></Text>
-                                        ))}
-                                    <Indicator
-                                        disabled={week[date].itemsCount === 0}
-                                        size={14}
-                                        withBorder={true}
-                                        processing={true}
-                                        zIndex={1}
+                                    <Group
+                                        position={isToSmall ? "apart" : "right"}
+                                        style={{
+                                            height: "24px",
+                                            borderRadius: "5px",
+                                            borderRight: `1px solid ${
+                                                app.theme.colorScheme === "dark"
+                                                    ? app.theme.colors.gray[8]
+                                                    : app.theme.colors.gray[2]
+                                            }`,
+                                            borderTop: `1px solid ${
+                                                app.theme.colorScheme === "dark"
+                                                    ? app.theme.colors.gray[8]
+                                                    : app.theme.colors.gray[2]
+                                            }`
+                                        }}
                                     >
-                                        <Text
-                                            size={week[date].isSameMonth ? "xs" : "10px"}
-                                            align={"right"}
-                                            color={week[date].isSameMonth ? "inherit" : "dimmed"}
-                                            py={2}
-                                            pr={6}
-                                        >
-                                            {isToSmall ? toLongDate(date) : dayjs(date).date()}
-                                        </Text>
-                                    </Indicator>
-                                </Group>
-
-                                {week[date].itemsCount > 0 && (
-                                    <>
-                                        {!isToSmall && amountIsKnownAt(date) ? (
-                                            <Stack px={"xs"} align={"flex-start"}>
+                                        {isToSmall &&
+                                            (week[date].itemsCount > 0 || amountIsKnownAt(date) ? (
                                                 <Currency
+                                                    pl={6}
                                                     currency={walletItem.currency}
                                                     size={"12px"}
                                                     fw={500}
@@ -370,82 +361,129 @@ function CalendarView({ walletItem, items, currentDate = null, onDateChange = nu
                                                             : app.theme.colors.brand[7]
                                                     }
                                                 />
-                                            </Stack>
-                                        ) : (
-                                            <Text size={"xs"} color={"dimmed"}></Text>
-                                        )}
-
-                                        <SimpleGrid
-                                            mt={isToSmall ? "xs" : "6px"}
-                                            cols={isToSmall ? 3 : 1}
-                                            spacing={0}
-                                            verticalSpacing={0}
+                                            ) : (
+                                                <Text size={"12px"}></Text>
+                                            ))}
+                                        <Indicator
+                                            disabled={week[date].itemsCount === 0}
+                                            size={14}
+                                            withBorder={true}
+                                            processing={true}
+                                            zIndex={1}
                                         >
                                             <Text
-                                                px={"xs"}
-                                                size={"10px"}
-                                                align={"left"}
-                                                lineClamp={1}
-                                                color={isToSmall || !week[date].isSameMonth ? "dimmed" : "inherit"}
-                                            >{`${week[date].itemsCount} opération${
-                                                week[date].itemsCount > 1 ? "s" : ""
-                                            }`}</Text>
+                                                size={week[date].isSameMonth ? "xs" : "10px"}
+                                                align={"right"}
+                                                color={week[date].isSameMonth ? "inherit" : "dimmed"}
+                                                py={2}
+                                                pr={6}
+                                            >
+                                                {isToSmall ? toLongDate(date) : dayjs(date).date()}
+                                            </Text>
+                                        </Indicator>
+                                    </Group>
 
-                                            <Group
-                                                mt={isToSmall ? 0 : "4px"}
-                                                spacing={4}
-                                                style={{ flexWrap: "nowrap" }}
-                                                px={"xs"}
-                                                align={isToSmall ? "right" : "left"}
+                                    {week[date].itemsCount > 0 && (
+                                        <>
+                                            {!isToSmall && amountIsKnownAt(date) ? (
+                                                <Stack px={"xs"} align={"flex-start"}>
+                                                    <Currency
+                                                        currency={walletItem.currency}
+                                                        size={"12px"}
+                                                        fw={500}
+                                                        lineClamp={1}
+                                                        amount={getKnownAmountAt(date)}
+                                                        color={
+                                                            app.theme.colorScheme === "dark"
+                                                                ? app.theme.colors.brand[3]
+                                                                : app.theme.colors.brand[7]
+                                                        }
+                                                    />
+                                                </Stack>
+                                            ) : (
+                                                <Text size={"xs"} color={"dimmed"}></Text>
+                                            )}
+
+                                            <SimpleGrid
+                                                mt={isToSmall ? "xs" : "6px"}
+                                                cols={isToSmall ? 3 : 1}
+                                                spacing={0}
+                                                verticalSpacing={0}
                                             >
                                                 <Text
-                                                    color={isToSmall || !week[date].isSameMonth ? "dimmed" : "inherit"}
+                                                    px={"xs"}
                                                     size={"10px"}
+                                                    align={"left"}
                                                     lineClamp={1}
-                                                    fw={700}
-                                                >
-                                                    ↑
-                                                </Text>
-                                                <Currency
-                                                    amount={week[date].win}
-                                                    currency={walletItem.currency}
-                                                    useColor={false}
-                                                    size={"10px"}
                                                     color={isToSmall || !week[date].isSameMonth ? "dimmed" : "inherit"}
-                                                />
-                                            </Group>
+                                                >{`${week[date].itemsCount} opération${
+                                                    week[date].itemsCount > 1 ? "s" : ""
+                                                }`}</Text>
 
-                                            <Group
-                                                spacing={4}
-                                                style={{ flexWrap: "nowrap" }}
-                                                px={"xs"}
-                                                align={isToSmall ? "right" : "left"}
-                                            >
-                                                <Text
-                                                    color={isToSmall || !week[date].isSameMonth ? "dimmed" : "inherit"}
-                                                    size={"10px"}
-                                                    lineClamp={1}
-                                                    fw={700}
+                                                <Group
+                                                    mt={isToSmall ? 0 : "4px"}
+                                                    spacing={4}
+                                                    style={{ flexWrap: "nowrap" }}
+                                                    px={"xs"}
+                                                    align={isToSmall ? "right" : "left"}
                                                 >
-                                                    ↓
-                                                </Text>
-                                                <Currency
-                                                    amount={week[date].lose}
-                                                    currency={walletItem.currency}
-                                                    useColor={false}
-                                                    size={"10px"}
-                                                    color={isToSmall || !week[date].isSameMonth ? "dimmed" : "inherit"}
-                                                />
-                                            </Group>
-                                        </SimpleGrid>
-                                    </>
-                                )}
-                            </Box>
-                        );
-                    })
-                )}
-            </SimpleGrid>
-        </Stack>
+                                                    <Text
+                                                        color={
+                                                            isToSmall || !week[date].isSameMonth ? "dimmed" : "inherit"
+                                                        }
+                                                        size={"10px"}
+                                                        lineClamp={1}
+                                                        fw={700}
+                                                    >
+                                                        ↑
+                                                    </Text>
+                                                    <Currency
+                                                        amount={week[date].win}
+                                                        currency={walletItem.currency}
+                                                        useColor={false}
+                                                        size={"10px"}
+                                                        color={
+                                                            isToSmall || !week[date].isSameMonth ? "dimmed" : "inherit"
+                                                        }
+                                                    />
+                                                </Group>
+
+                                                <Group
+                                                    spacing={4}
+                                                    style={{ flexWrap: "nowrap" }}
+                                                    px={"xs"}
+                                                    align={isToSmall ? "right" : "left"}
+                                                >
+                                                    <Text
+                                                        color={
+                                                            isToSmall || !week[date].isSameMonth ? "dimmed" : "inherit"
+                                                        }
+                                                        size={"10px"}
+                                                        lineClamp={1}
+                                                        fw={700}
+                                                    >
+                                                        ↓
+                                                    </Text>
+                                                    <Currency
+                                                        amount={week[date].lose}
+                                                        currency={walletItem.currency}
+                                                        useColor={false}
+                                                        size={"10px"}
+                                                        color={
+                                                            isToSmall || !week[date].isSameMonth ? "dimmed" : "inherit"
+                                                        }
+                                                    />
+                                                </Group>
+                                            </SimpleGrid>
+                                        </>
+                                    )}
+                                </Box>
+                            );
+                        })
+                    )}
+                </SimpleGrid>
+            </Stack>
+        </>
     );
 }
 
