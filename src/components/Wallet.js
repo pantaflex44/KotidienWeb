@@ -244,7 +244,7 @@ function Wallet({
     };
 
     const saveOpe = (closeAfterSave = false) => {
-if (window) document.body.style.cursor = "wait";
+        if (window) document.body.style.cursor = "wait";
 
         setSaving(true);
 
@@ -966,61 +966,58 @@ if (window) document.body.style.cursor = "wait";
             .finally(() => setLoading(false));
     };
 
-    const loadOpeList = useCallback(
-        (custumFilters = null) => {
-            if(window) document.body.style.cursor = "wait";
+    const loadOpeList = useCallback(() => {
+        if (window) document.body.style.cursor = "wait";
 
-            setLoading(true);
-            setSelected([]);
+        setLoading(true);
+        setSelected([]);
 
-            getOperations(app.wallet.email, walletItem.id, filters)
-                .then((response) => {
-                    const { operations, errorCode, errorMessage } = response;
+        getOperations(app.wallet.email, walletItem.id, filters)
+            .then((response) => {
+                const { operations, errorCode, errorMessage } = response;
 
-                    if (errorCode !== 0) {
-                        showNotification({
-                            id: `get-operation-error-notification-${uid()}`,
-                            disallowClose: true,
-                            autoClose: 5000,
-                            title: "Impossible de lister les opérations!",
-                            message: errorMessage,
-                            color: "red",
-                            icon: <IconX size={18} />,
-                            loading: false
+                if (errorCode !== 0) {
+                    showNotification({
+                        id: `get-operation-error-notification-${uid()}`,
+                        disallowClose: true,
+                        autoClose: 5000,
+                        title: "Impossible de lister les opérations!",
+                        message: errorMessage,
+                        color: "red",
+                        icon: <IconX size={18} />,
+                        loading: false
+                    });
+                } else {
+                    setOpeListItems((current) => {
+                        const results = compareOpeListItems(operations, current);
+                        if (!results) return operations;
+
+                        const { added, removed, updated } = results;
+                        let newOperations = [...current, ...added];
+
+                        const removedIds = removed.map((o) => o.id);
+                        newOperations = newOperations.filter((o) => !removedIds.includes(o.id));
+
+                        const updatedIds = updated.map((o) => o.id);
+                        newOperations = newOperations.map((o) => {
+                            if (!updatedIds.includes(o.id)) return o;
+
+                            const uope = updated.filter((u) => u.id === o.id);
+                            if (uope.length === 0) return o;
+
+                            return { ...o, ...uope[0] };
                         });
-                    } else {
-                        setOpeListItems((current) => {
-                            const results = compareOpeListItems(operations, current);
-                            if (!results) return operations;
 
-                            const { added, removed, updated } = results;
-                            let newOperations = [...current, ...added];
+                        return newOperations;
+                    });
+                }
+            })
+            .finally(() => {
+                setLoading(false);
 
-                            const removedIds = removed.map((o) => o.id);
-                            newOperations = newOperations.filter((o) => !removedIds.includes(o.id));
-
-                            const updatedIds = updated.map((o) => o.id);
-                            newOperations = newOperations.map((o) => {
-                                if (!updatedIds.includes(o.id)) return o;
-
-                                const uope = updated.filter((u) => u.id === o.id);
-                                if (uope.length === 0) return o;
-
-                                return { ...o, ...uope[0] };
-                            });
-
-                            return newOperations;
-                        });
-                    }
-                })
-                .finally(() => {
-                    setLoading(false);
-
-                    if (window) document.body.style.cursor = "default";
-                });
-        },
-        [walletItem.id, filters, app.currentDate, forceRefresh]
-    );
+                if (window) document.body.style.cursor = "default";
+            });
+    }, [walletItem.id, filters, app.currentDate, forceRefresh]);
 
     useEffect(() => {
         if (app.idle) {
@@ -1029,7 +1026,7 @@ if (window) document.body.style.cursor = "wait";
     }, [app.idle]);
 
     useLayoutEffect(() => {
-        setForceRefresh(uid());
+        //setForceRefresh(uid());
         loadOpeList();
     }, [walletItem.id, filters, app.currentDate]);
 
@@ -1444,7 +1441,10 @@ if (window) document.body.style.cursor = "wait";
                                     top: "80px",
                                     zIndex: 1,
                                     backdropFilter: "blur(10px)",
-                                    backgroundColor: app.theme.fn.rgba(app.theme.white, 0.5),
+                                    backgroundColor: app.theme.fn.rgba(
+                                        app.theme.colorScheme === "dark" ? app.theme.colors.gray[9] : app.theme.white,
+                                        0.5
+                                    ),
                                     borderRadius: "5px"
                                 }}
                             >

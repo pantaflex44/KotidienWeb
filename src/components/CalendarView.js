@@ -1,15 +1,15 @@
 import packagejson from "../../package.json";
 
-import React, { memo, useEffect, useMemo, useState, useContext, useCallback, useLayoutEffect } from "react";
+import React, { memo, useEffect, useState, useContext, useCallback, useLayoutEffect } from "react";
 
 import { getDatePattern, getFirstDayOfMonth, getLastDayOfMonth } from "../../tools";
 import dayjs from "dayjs";
 import { getAmountAt } from "../wrappers/wallet_api";
 
-import { ActionIcon, Box, Center, Grid, Group, Indicator, MediaQuery, SimpleGrid, Stack, Text } from "@mantine/core";
+import { ActionIcon, Box, Group, Indicator, MediaQuery, SimpleGrid, Stack, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 
-import { IconChevronLeft, IconChevronRight, IconChevronsLeft, IconCircleChevronRight } from "@tabler/icons";
+import { IconChevronLeft, IconChevronRight } from "@tabler/icons";
 
 import { AppContext } from "./AppProvider";
 import Currency from "./Currency";
@@ -21,6 +21,10 @@ function CalendarView({ walletItem, items, currentDate = null, onDateChange = nu
     const [calendar, setCalendar] = useState([]);
     const [totalAmounts, setTotalAmounts] = useState({});
     const [viewDate, setViewDate] = useState(currentDate || dayjs().toDate());
+
+    const isToSmall = useMediaQuery("(max-width: 768px)");
+    const toLongDate = (date) =>
+        dayjs(date).locale(packagejson.i18n.defaultLocale).format(getDatePattern(packagejson.i18n.defaultLocale, true));
 
     const dateInfo = (date) => {
         const dayItems = items.filter((item) => dayjs(item.date).isSame(date, "day"));
@@ -40,6 +44,14 @@ function CalendarView({ walletItem, items, currentDate = null, onDateChange = nu
         };
     };
 
+    const a2o = (a) => {
+        let o = {};
+        a.forEach((i) => {
+            o = { ...o, ...i };
+        });
+        return o;
+    };
+
     const completeBefore = (date) => {
         const day = date.day() === 0 ? 7 : date.day();
         const days = Array.from({ length: day - 1 }, (_, i) => {
@@ -48,11 +60,7 @@ function CalendarView({ walletItem, items, currentDate = null, onDateChange = nu
                 [day.format("YYYY-MM-DD")]: dateInfo(day)
             };
         });
-        let obj = {};
-        days.forEach((day) => {
-            obj = { ...obj, ...day };
-        });
-        return obj;
+        return a2o(days);
     };
 
     const completeAfter = (date) => {
@@ -63,11 +71,7 @@ function CalendarView({ walletItem, items, currentDate = null, onDateChange = nu
                 [day.format("YYYY-MM-DD")]: dateInfo(day)
             };
         });
-        let obj = {};
-        days.forEach((day) => {
-            obj = { ...obj, ...day };
-        });
-        return obj;
+        return a2o(days);
     };
 
     const getKnownAmountAt = useCallback(
@@ -84,52 +88,7 @@ function CalendarView({ walletItem, items, currentDate = null, onDateChange = nu
         [totalAmounts]
     );
 
-    useLayoutEffect(() => {
-        const firstDayOfMonth = dayjs(viewDate).startOf("month");
-        const lastDayOfMonth = dayjs(viewDate).endOf("month");
-
-        const list = Array.from({ length: lastDayOfMonth.date() }, (_, i) => {
-            const day = firstDayOfMonth.add(i, "day");
-            return {
-                [day.format("YYYY-MM-DD")]: dateInfo(day)
-            };
-        });
-        let obj = {};
-        list.forEach((day) => {
-            obj = { ...obj, ...day };
-        });
-
-        const thisMonth = {
-            ...completeBefore(firstDayOfMonth),
-            ...obj,
-            ...completeAfter(lastDayOfMonth)
-        };
-
-        const temp = Object.entries(thisMonth)
-            .sort((a, b) => {
-                return dayjs(a[0]).isBefore(dayjs(b[0])) ? -1 : 1;
-            })
-            .reduce((acc, [key, value], i) => {
-                const row = Math.floor(i / 7);
-                if (!acc[row]) {
-                    acc[row] = {};
-                }
-                acc[row][key] = value;
-                return acc;
-            }, {});
-
-        const grid = Object.keys(temp).map((key) => temp[key]);
-
-        setTotalAmounts({});
-
-        setCalendar(grid);
-    }, [items, walletItem.id]);
-
-    useLayoutEffect(() => {
-        dateChanged(dayjs(viewDate));
-    }, [viewDate]);
-
-    useEffect(() => {
+    const getAllAmounts = useCallback(() => {
         calendar.forEach((week) => {
             Object.entries(week).forEach(([key, value]) => {
                 const date = dayjs(key);
@@ -170,9 +129,54 @@ function CalendarView({ walletItem, items, currentDate = null, onDateChange = nu
         ]);
     };
 
-    const isToSmall = useMediaQuery("(max-width: 768px)");
-    const toLongDate = (date) =>
-        dayjs(date).locale(packagejson.i18n.defaultLocale).format(getDatePattern(packagejson.i18n.defaultLocale, true));
+    const loadCalendar = useCallback(() => {
+        const firstDayOfMonth = dayjs(viewDate).startOf("month");
+        const lastDayOfMonth = dayjs(viewDate).endOf("month");
+
+        const days = Array.from({ length: lastDayOfMonth.date() }, (_, i) => {
+            const day = firstDayOfMonth.add(i, "day");
+            return {
+                [day.format("YYYY-MM-DD")]: dateInfo(day)
+            };
+        });
+
+        const thisMonth = {
+            ...completeBefore(firstDayOfMonth),
+            ...a2o(days),
+            ...completeAfter(lastDayOfMonth)
+        };
+
+        const temp = Object.entries(thisMonth)
+            .sort((a, b) => {
+                return dayjs(a[0]).isBefore(dayjs(b[0])) ? -1 : 1;
+            })
+            .reduce((acc, [key, value], i) => {
+                const row = Math.floor(i / 7);
+                if (!acc[row]) {
+                    acc[row] = {};
+                }
+                acc[row][key] = value;
+                return acc;
+            }, {});
+
+        const grid = Object.keys(temp).map((key) => temp[key]);
+
+        setTotalAmounts({});
+
+        setCalendar(grid);
+    }, [items, walletItem.id]);
+
+    useLayoutEffect(() => {
+        loadCalendar();
+    }, [items, walletItem.id]);
+
+    useLayoutEffect(() => {
+        dateChanged(dayjs(viewDate));
+    }, [viewDate]);
+
+    useLayoutEffect(() => {
+        getAllAmounts();
+    }, [calendar]);
 
     return (
         <Stack>
@@ -277,7 +281,7 @@ function CalendarView({ walletItem, items, currentDate = null, onDateChange = nu
                                 key={date}
                                 h={isToSmall ? (week[date].itemsCount > 0 ? "57px" : "26px") : "110px"}
                                 sx={{
-                                    cursor: "pointer",
+                                    cursor: week[date].itemsCount > 0 ? "pointer" : "default",
                                     borderRadius: "5px",
                                     backgroundColor: week[date].isWeekend
                                         ? app.theme.fn.rgba(app.theme.colors.brand[5], 0.05)
@@ -286,9 +290,13 @@ function CalendarView({ walletItem, items, currentDate = null, onDateChange = nu
 
                                     "&:hover": {
                                         backgroundColor:
-                                            app.theme.colorScheme === "dark"
-                                                ? app.theme.colors.gray[9]
-                                                : app.theme.colors.gray[0]
+                                            week[date].itemsCount > 0
+                                                ? app.theme.colorScheme === "dark"
+                                                    ? app.theme.colors.gray[9]
+                                                    : app.theme.colors.gray[0]
+                                                : week[date].isWeekend
+                                                ? app.theme.fn.rgba(app.theme.colors.brand[5], 0.05)
+                                                : "transparent"
                                     }
                                 }}
                             >
