@@ -1,6 +1,6 @@
 {
     "name": "kotidien",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "husky": {
         "hooks": {
             "pre-commit": "npm --no-git-tag-version version patch && git add ."
@@ -31,7 +31,8 @@
         "dev:client": "webpack-dev-server --mode development --open",
         "dev": "cross-env NODE_ENV=development concurrently \"npm run start:server\" \"npm run dev:client\" --kill-others --success first",
         "build": "cross-env NODE_ENV=production webpack --mode production --progress",
-        "start": "cross-env NODE_ENV=production nodemon ./api/server.js"
+        "start": "cross-env NODE_ENV=production nodemon ./api/server.js",
+        "prepare": "husky install"
     },
     "dependencies": {
         "@emotion/react": "^11.10.5",
